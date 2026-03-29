@@ -67,28 +67,31 @@ const MAX_DESIGNS_PER_ORDER = 10;
 /**
  * Handles preflight OPTIONS requests for CORS
  * Critical for allowing requests from GitHub Pages or any external domain
- * 
+ *
+ * IMPORTANT: GAS automatically handles CORS for ContentService responses
+ * The doOptions function is called for OPTIONS preflight requests
+ *
  * @param {Object} e - Event object from Apps Script
  * @returns {GoogleAppsScript.Content.TextOutput} Response with CORS headers
  */
 function doOptions(e) {
-  return buildCorsResponse_('', {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Action',
-    'Access-Control-Max-Age': '86400'
-  });
+  // GAS ContentService automatically adds CORS headers
+  // We just need to return an empty JSON response
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    message: 'CORS preflight OK'
+  })).setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
- * Helper to build CORS-enabled response
- * 
- * @param {string} content - Response body content
- * @param {Object} headers - Additional headers to include
- * @returns {GoogleAppsScript.Content.TextOutput} TextOutput with CORS headers
+ * Helper to build JSON response
+ * GAS ContentService automatically handles CORS for all responses
+ *
+ * @param {Object} data - Response data object
+ * @returns {GoogleAppsScript.Content.TextOutput} TextOutput with JSON
  */
-function buildCorsResponse_(content, headers) {
-  const output = ContentService.createTextOutput(content);
+function buildCorsResponse_(data) {
+  const output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;
 }
@@ -106,23 +109,23 @@ function buildCorsResponse_(content, headers) {
 function doGet(e) {
   try {
     const acceptingOrders = isAcceptingOrders_();
-    
-    return buildCorsResponse_(JSON.stringify({
+
+    return buildCorsResponse_({
       success: true,
       acceptingOrders: acceptingOrders,
       timestamp: new Date().toISOString()
-    }));
-    
+    });
+
   } catch (error) {
     Logger.log('GET Error: ' + error.toString());
-    
+
     // Fail open - allow orders if config check fails
-    return buildCorsResponse_(JSON.stringify({
+    return buildCorsResponse_({
       success: false,
       acceptingOrders: true,
       error: 'Could not verify order status',
       timestamp: new Date().toISOString()
-    }));
+    });
   }
 }
 
@@ -166,13 +169,13 @@ function doPost(e) {
   } catch (error) {
     Logger.log('CRITICAL ERROR in doPost: ' + error.toString());
     Logger.log(error.stack);
-    
-    return buildCorsResponse_(JSON.stringify({
+
+    return buildCorsResponse_({
       success: false,
       error: 'An unexpected error occurred. Please try again or contact support.',
       code: 'INTERNAL_ERROR',
       details: error.toString()
-    }), 500);
+    });
   }
 }
 
@@ -203,57 +206,57 @@ function handleGetUploadUrls_(data) {
   try {
     // Validate required fields
     if (!data.customerName || !data.files || !Array.isArray(data.files)) {
-      return buildCorsResponse_(JSON.stringify({
+      return buildCorsResponse_({
         success: false,
         error: 'Missing required fields: customerName and files array',
         code: 'VALIDATION_ERROR'
-      }), 400);
+      });
     }
-    
+
     if (data.files.length === 0) {
-      return buildCorsResponse_(JSON.stringify({
+      return buildCorsResponse_({
         success: false,
         error: 'At least one file is required',
         code: 'VALIDATION_ERROR'
-      }), 400);
+      });
     }
-    
+
     if (data.files.length > MAX_DESIGNS_PER_ORDER) {
-      return buildCorsResponse_(JSON.stringify({
+      return buildCorsResponse_({
         success: false,
         error: 'Maximum ' + MAX_DESIGNS_PER_ORDER + ' files allowed per order',
         code: 'VALIDATION_ERROR'
-      }), 400);
+      });
     }
-    
+
     // Validate each file metadata
     for (let i = 0; i < data.files.length; i++) {
       const file = data.files[i];
       if (!file.fileName || !file.mimeType) {
-        return buildCorsResponse_(JSON.stringify({
+        return buildCorsResponse_({
           success: false,
           error: 'File ' + (i + 1) + ' missing fileName or mimeType',
           code: 'VALIDATION_ERROR'
-        }), 400);
+        });
       }
-      
+
       // Validate MIME type is an image
       if (!file.mimeType.startsWith('image/')) {
-        return buildCorsResponse_(JSON.stringify({
+        return buildCorsResponse_({
           success: false,
           error: 'File ' + (i + 1) + ' must be an image',
           code: 'VALIDATION_ERROR'
-        }), 400);
+        });
       }
     }
-    
+
     // Check if accepting orders
     if (!isAcceptingOrders_()) {
-      return buildCorsResponse_(JSON.stringify({
+      return buildCorsResponse_({
         success: false,
         error: 'We are not currently accepting new orders',
         code: 'NOT_ACCEPTING_ORDERS'
-      }), 503);
+      });
     }
     
     // Generate Order ID
@@ -301,7 +304,7 @@ function handleGetUploadUrls_(data) {
     }
     
     // Return upload URLs and folder info
-    return buildCorsResponse_(JSON.stringify({
+    return buildCorsResponse_({
       success: true,
       orderId: orderId,
       folderId: folderId,
@@ -309,16 +312,16 @@ function handleGetUploadUrls_(data) {
       uploadUrls: uploadUrls,
       message: 'Upload URLs generated successfully',
       timestamp: new Date().toISOString()
-    }));
-    
+    });
+
   } catch (error) {
     Logger.log('Error in handleGetUploadUrls_: ' + error.toString());
-    
-    return buildCorsResponse_(JSON.stringify({
+
+    return buildCorsResponse_({
       success: false,
       error: 'Failed to generate upload URLs: ' + error.toString(),
       code: 'UPLOAD_URL_ERROR'
-    }), 500);
+    });
   }
 }
 
@@ -354,26 +357,26 @@ function handleLogOrder_(data) {
     // Validate payload
     const validationError = validateOrderData_(data);
     if (validationError) {
-      return buildCorsResponse_(JSON.stringify({
+      return buildCorsResponse_({
         success: false,
         error: validationError,
         code: 'VALIDATION_ERROR'
-      }), 400);
+      });
     }
-    
+
     Logger.log('Logging order: ' + data.orderId);
-    
+
     // Open spreadsheet
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersSheet = ss.getSheetByName(ORDERS_SHEET_NAME);
-    
+
     if (!ordersSheet) {
       throw new Error('Orders sheet not found: ' + ORDERS_SHEET_NAME);
     }
-    
+
     // Format design specs as Notion-style bulleted list
     const formattedSpecs = formatDesignSpecs_(data.subDesigns);
-    
+
     // Prepare row data
     // Schema: Timestamp | Order ID | Name | Email | Mobile | Order Status | Payment Status | Design Specs | Folder URL | Legal Consent
     const rowData = [
@@ -388,34 +391,34 @@ function handleLogOrder_(data) {
       data.folderUrl,                             // Column I: Folder URL
       data.legalConsent ? 'Granted' : 'Failed'    // Column J: Legal Consent
     ];
-    
+
     // Append row to sheet
     const lastRow = ordersSheet.getLastRow();
     ordersSheet.appendRow(rowData);
-    
+
     // Apply data validation to new row
     const newRow = lastRow + 1;
     applyDataValidation_(ordersSheet, newRow);
     formatNewRow_(ordersSheet, newRow);
-    
+
     Logger.log('Order logged successfully: ' + data.orderId);
-    
-    return buildCorsResponse_(JSON.stringify({
+
+    return buildCorsResponse_({
       success: true,
       orderId: data.orderId,
       message: 'Order logged successfully',
       sheetRow: newRow,
       timestamp: new Date().toISOString()
-    }));
-    
+    });
+
   } catch (error) {
     Logger.log('Error in handleLogOrder_: ' + error.toString());
-    
-    return buildCorsResponse_(JSON.stringify({
+
+    return buildCorsResponse_({
       success: false,
       error: 'Failed to log order: ' + error.toString(),
       code: 'LOG_ORDER_ERROR'
-    }), 500);
+    });
   }
 }
 
@@ -428,11 +431,11 @@ function handleLogOrder_(data) {
  * Kept for transition period - deprecated, use two-step flow instead
  */
 function handleLegacySubmit_(data) {
-  return buildCorsResponse_(JSON.stringify({
+  return buildCorsResponse_({
     success: false,
     error: 'Legacy submission is deprecated. Please use the two-step upload flow (getUploadUrls → logOrder).',
     code: 'LEGACY_DEPRECATED'
-  }), 400);
+  });
 }
 
 // =============================================================================

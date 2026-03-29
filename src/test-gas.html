@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAS Connection Test | MA³ Store</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #1a1a2e; }
+    h2 { color: #666; font-size: 18px; }
+    button {
+      background: #1a1a2e;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover { background: #16213e; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.info { background: #d1ecf1; color: #0c5460; }
+    .log {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-line { margin: 5px 0; }
+    .label { font-weight: bold; color: #333; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔧 Google Apps Script Connection Test</h1>
+    <p>Use this page to test if your frontend can communicate with the Google Apps Script backend.</p>
+  </div>
+
+  <div class="card">
+    <h2>Configuration</h2>
+    <p><span class="label">GAS Web App URL:</span></p>
+    <code id="gas-url" style="display: block; margin: 10px 0; word-break: break-all;">Loading...</code>
+    <p><span class="label">Status:</span> <span id="config-status">Checking...</span></p>
+  </div>
+
+  <div class="card">
+    <h2>Test 1: GET Request (Order Status)</h2>
+    <p>Tests if the backend is accessible and responding to GET requests.</p>
+    <button onclick="testGetRequest()" id="btn-get">Run GET Test</button>
+    <div id="get-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Test 2: POST Request (Get Upload URLs)</h2>
+    <p>Tests the getUploadUrls action with sample data.</p>
+    <button onclick="testPostRequest()" id="btn-post">Run POST Test</button>
+    <div id="post-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Connection Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwzK4_9D9VfyZzf16YcP93m7b-Ymik_u_A1uQd5Tq1xDhN5qrN2snU6SdBujHfwIvEM/exec';
+
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('log');
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      const timestamp = new Date().toLocaleTimeString();
+      line.textContent = `[${timestamp}] ${message}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function showResult(elementId, success, message) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = `<div class="status ${success ? 'success' : 'error'}">${success ? '✅' : '❌'} ${message}</div>`;
+    }
+
+    // Check configuration on load
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('gas-url').textContent = GAS_WEB_APP_URL;
+      
+      if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+        document.getElementById('config-status').innerHTML = '<span style="color: red;">❌ URL not configured! Edit app.js and set GAS_WEB_APP_URL</span>';
+        log('ERROR: GAS URL not configured', 'error');
+      } else {
+        document.getElementById('config-status').innerHTML = '<span style="color: green;">✅ URL configured</span>';
+        log('GAS URL configured: ' + GAS_WEB_APP_URL, 'info');
+      }
+    });
+
+    async function testGetRequest() {
+      const btn = document.getElementById('btn-get');
+      btn.disabled = true;
+      btn.textContent = 'Testing...';
+      log('Starting GET request test...', 'info');
+
+      try {
+        const startTime = Date.now();
+        
+        // Use no-cors for GAS
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-cache'
+        });
+
+        const duration = Date.now() - startTime;
+        log(`GET response received in ${duration}ms (status: ${response.status})`, 'info');
+        log('Note: With no-cors mode, response is opaque (status 0)', 'info');
+
+        showResult('get-result', true, `Request completed in ${duration}ms. Check console for details.`);
+        log('GET test completed', 'success');
+
+      } catch (error) {
+        log(`GET error: ${error.message}`, 'error');
+        showResult('get-result', false, `Error: ${error.message}`);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Run GET Test';
+    }
+
+    async function testPostRequest() {
+      const btn = document.getElementById('btn-post');
+      btn.disabled = true;
+      btn.textContent = 'Testing...';
+      log('Starting POST request test...', 'info');
+
+      try {
+        const startTime = Date.now();
+
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-cache',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'getUploadUrls',
+            customerName: 'Test User',
+            files: [
+              { fileName: 'test-1.png', mimeType: 'image/png' },
+              { fileName: 'test-2.jpg', mimeType: 'image/jpeg' }
+            ]
+          })
+        });
+
+        const duration = Date.now() - startTime;
+        log(`POST response status: ${response.status}`, 'info');
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          log(`Server error: ${errorText}`, 'error');
+          throw new Error(`Server responded with ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+
+        const data = await response.json();
+        log(`Response: ${JSON.stringify(data, null, 2)}`, 'success');
+
+        if (data.success) {
+          showResult('post-result', true, `
+            <strong>Success!</strong><br>
+            Order ID: ${data.orderId}<br>
+            Upload URLs: ${data.uploadUrls?.length || 0}<br>
+            Duration: ${duration}ms
+          `);
+          log('POST test completed successfully', 'success');
+        } else {
+          showResult('post-result', false, `Server returned success: false - ${data.error}`);
+          log('POST test failed: ' + data.error, 'error');
+        }
+
+      } catch (error) {
+        log(`POST error: ${error.message}`, 'error');
+        showResult('post-result', false, `Error: ${error.message}<br><br><strong>Common causes:</strong><br>
+          1. Web App not deployed<br>
+          2. Wrong access permissions<br>
+          3. CORS issue<br>
+          4. Invalid URL`);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Run POST Test';
+    }
+  </script>
+</body>
+</html>

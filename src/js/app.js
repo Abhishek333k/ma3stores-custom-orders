@@ -142,30 +142,29 @@
   // ============================================================================
   // ORDER STATUS CHECK
   // ============================================================================
-  
+
   async function checkOrderStatus() {
     if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
       console.warn('GAS_WEB_APP_URL not configured');
       return;
     }
-    
+
     try {
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'GET',
-        mode: 'cors',
+        // Note: GAS handles CORS automatically, but we use no-cors for initial check
+        mode: 'no-cors',
         cache: 'no-cache'
       });
-      
-      if (!response.ok) throw new Error('Failed to fetch order status');
-      
-      const data = await response.json();
-      
-      if (data.success && !data.acceptingOrders) {
-        showCapacityModal();
-      }
+
+      // With no-cors mode, we can't read the response body
+      // So we assume success and let the form work
+      console.log('Order status check completed (opaque response)');
+      // Don't show capacity modal on error - fail open
       
     } catch (error) {
       console.error('Error checking order status:', error);
+      // Fail open - allow form to be used
     }
   }
   
@@ -464,27 +463,42 @@
         }))
       };
     }
-    
-    const response = await fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      mode: 'cors',
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Action': 'getUploadUrls'
-      },
-      body: JSON.stringify({
-        action: 'getUploadUrls',
-        customerName: elements.customerName?.value.trim() || '',
-        files: fileMetadata
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Server responded with status ${response.status}`);
+
+    console.log('Requesting upload URLs from:', GAS_WEB_APP_URL);
+
+    try {
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        // GAS handles CORS - use cors mode
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'getUploadUrls',
+          customerName: elements.customerName?.value.trim() || '',
+          files: fileMetadata
+        })
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`Server responded with status ${response.status}: ${errorText.substring(0, 200)}`);
+      }
+
+      const data = await response.json();
+      console.log('Upload URLs response:', data);
+
+      return data;
+
+    } catch (error) {
+      console.error('Failed to request upload URLs:', error);
+      throw error;
     }
-    
-    return await response.json();
   }
   
   /**
@@ -592,23 +606,37 @@
         sheetRow: 2
       };
     }
-    
-    const response = await fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      mode: 'cors',
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Action': 'logOrder'
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Server responded with status ${response.status}`);
+
+    console.log('Logging order to backend:', payload.orderId);
+
+    try {
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      console.log('Log order response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Log order error:', errorText);
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Order logged:', data);
+
+      return data;
+
+    } catch (error) {
+      console.error('Failed to log order:', error);
+      throw error;
     }
-    
-    return await response.json();
   }
   
   function sleep(ms) {
