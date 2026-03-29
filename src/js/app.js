@@ -22,7 +22,7 @@
   
   /**
    * Google Apps Script Web App URL
-   * MA³ Store Custom Design Portal Backend
+   * MA³ Store Custom Design Portal Backend - Production
    */
   const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxGI9FGV695hOGtVpRqZJJy_NTWkrQDRCELD2zDHRHZp9rn4i9HHutKbVoXgjjuDGBU/exec';
   
@@ -359,7 +359,13 @@
       // STEP 1: Request secure upload URLs from backend
       // ==========================================================================
       setLoadingState(true, 'Requesting secure upload tunnel...', 'Generating secure URLs for your files');
-      
+
+      // Generate Order ID locally
+      const timestamp = new Date();
+      const dateStr = timestamp.toISOString().slice(0, 10).replace(/-/g, '');
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      currentOrderId = `ORD-${dateStr}-${randomNum}`;
+
       const fileMetadata = files.map((f, index) => {
         const block = f.designBlock;
         const productType = block.querySelector('[name="productType"]')?.value || 'Custom';
@@ -370,16 +376,16 @@
           productType: productType
         };
       });
-      
+
       const uploadUrlsResponse = await requestUploadUrls_(fileMetadata);
-      
+
       if (!uploadUrlsResponse.success) {
         throw new Error(uploadUrlsResponse.error || 'Failed to get upload URLs');
       }
-      
-      currentOrderId = uploadUrlsResponse.orderId;
+
+      currentOrderId = uploadUrlsResponse.orderId || currentOrderId;
       currentFolderUrl = uploadUrlsResponse.folderUrl;
-      
+
       console.log('Order ID:', currentOrderId);
       console.log('Folder URL:', currentFolderUrl);
       
@@ -402,20 +408,20 @@
       // STEP 3: Log order metadata to backend
       // ==========================================================================
       setLoadingState(true, 'Finalizing order...', 'Saving your order details to our system');
-      
-      const subDesigns = uploadResults.map((result, index) => ({
-        productType: fileMetadata[index].productType,
-        specs: files[index].designBlock.querySelector('[name="specs"]')?.value || '',
-        fileName: result.fileName
-      }));
-      
+
+      // Format specs as bulleted list (matching backend expectation)
+      const formattedSpecs = uploadResults.map((result, index) => {
+        const productType = fileMetadata[index].productType;
+        const specs = files[index].designBlock.querySelector('[name="specs"]')?.value || '';
+        return `• ${productType}: ${specs}`;
+      }).join('\n');
+
       const logOrderPayload = {
-        action: 'logOrder',
         orderId: currentOrderId,
         customerName: elements.customerName?.value.trim() || '',
         email: elements.customerEmail?.value.trim() || '',
         mobileNumber: elements.customerMobile?.value.trim() || '',
-        subDesigns: subDesigns,
+        formattedSpecs: formattedSpecs,
         folderUrl: currentFolderUrl,
         legalConsent: elements.legalConsent?.checked || false
       };
@@ -469,7 +475,6 @@
     try {
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        // CORS Fix: Use text/plain to bypass preflight, redirect: follow for GAS 302
         mode: 'cors',
         cache: 'no-cache',
         redirect: 'follow',
@@ -478,6 +483,7 @@
         },
         body: JSON.stringify({
           action: 'getUploadUrls',
+          orderId: currentOrderId || 'ORD-TEMP-' + Date.now(),
           customerName: elements.customerName?.value.trim() || '',
           files: fileMetadata
         })
@@ -494,7 +500,24 @@
       const data = await response.json();
       console.log('Upload URLs response:', data);
 
-      return data;
+      if (data.status !== 'success') {
+        throw new Error(data.message || 'Failed to get upload URLs');
+      }
+
+      currentOrderId = data.orderId || currentOrderId;
+      currentFolderUrl = data.folderUrl;
+
+      return {
+        success: true,
+        orderId: data.orderId,
+        folderUrl: data.folderUrl,
+        uploadUrls: data.uploadUrls.map((url, i) => ({
+          uploadUrl: url,
+          index: i,
+          fileName: fileMetadata[i].fileName,
+          mimeType: fileMetadata[i].mimeType
+        }))
+      };
 
     } catch (error) {
       console.error('Failed to request upload URLs:', error);
@@ -613,14 +636,22 @@
     try {
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        // CORS Fix: Use text/plain to bypass preflight, redirect: follow for GAS 302
         mode: 'cors',
         cache: 'no-cache',
         redirect: 'follow',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          action: 'logOrder',
+          orderId: payload.orderId,
+          customerName: payload.customerName,
+          customerEmail: payload.email || '',
+          mobileNumber: payload.mobileNumber,
+          formattedSpecs: payload.formattedSpecs,
+          folderUrl: payload.folderUrl,
+          legalConsent: payload.legalConsent
+        })
       });
 
       console.log('Log order response status:', response.status);
@@ -633,6 +664,10 @@
 
       const data = await response.json();
       console.log('Order logged:', data);
+
+      if (data.status !== 'success') {
+        throw new Error(data.message || 'Failed to log order');
+      }
 
       return data;
 
