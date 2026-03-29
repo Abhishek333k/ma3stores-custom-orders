@@ -473,10 +473,12 @@
     console.log('Requesting upload URLs from:', GAS_WEB_APP_URL);
 
     try {
+      // CORS-compliant fetch for Google Apps Script
+      // Using text/plain to bypass OPTIONS preflight
+      // redirect: 'follow' is required for GAS 302 redirects
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'cors',
-        cache: 'no-cache',
         redirect: 'follow',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
@@ -634,10 +636,12 @@
     console.log('Logging order to backend:', payload.orderId);
 
     try {
+      // CORS-compliant fetch for Google Apps Script
+      // Using text/plain to bypass OPTIONS preflight
+      // redirect: 'follow' is required for GAS 302 redirects
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'cors',
-        cache: 'no-cache',
         redirect: 'follow',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
