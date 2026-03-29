@@ -469,11 +469,12 @@
     try {
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        // GAS handles CORS - use cors mode
+        // CORS Fix: Use text/plain to bypass preflight, redirect: follow for GAS 302
         mode: 'cors',
         cache: 'no-cache',
+        redirect: 'follow',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'text/plain;charset=utf-8'
         },
         body: JSON.stringify({
           action: 'getUploadUrls',
@@ -612,10 +613,12 @@
     try {
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
+        // CORS Fix: Use text/plain to bypass preflight, redirect: follow for GAS 302
         mode: 'cors',
         cache: 'no-cache',
+        redirect: 'follow',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'text/plain;charset=utf-8'
         },
         body: JSON.stringify(payload)
       });

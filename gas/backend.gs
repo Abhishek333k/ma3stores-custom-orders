@@ -35,8 +35,9 @@ const TARGET_FOLDER_ID = "1LH5p6ZpsCy-dxNlNky_6yS0cpZU1CZyR";
 
 /**
  * Google Spreadsheet ID that contains Orders and Config sheets.
+ * Production Database ID
  */
-const SPREADSHEET_ID = "1La55rhdiX3vI_OAIk_BVMkQ7x-rc24sq";
+const SPREADSHEET_ID = "14RAOoBhYoFzZirbU9zW-qIAYLV8mM9OiLTT-iCdfKGQ";
 
 /**
  * Sheet names (must match your Google Sheet exactly)
