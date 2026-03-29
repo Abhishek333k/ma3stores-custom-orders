@@ -678,12 +678,7 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.image-preview-item:hover .image-preview-remove {
-  opacity: 1;
+  opacity: 1; /* Always visible for better UX */
 }
 
 .image-preview-remove:hover {

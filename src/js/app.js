@@ -477,22 +477,24 @@
         return;
       }
 
-      // Use FormData to avoid CORS preflight
-      const formData = new FormData();
-      formData.append('action', 'getUploadUrls');
-      formData.append('orderId', currentOrderId);
-      formData.append('customerName', elements.customerName?.value.trim() || '');
-      formData.append('files', JSON.stringify(fileMetadata.map(f => ({
-        fileName: f.fileName,
-        mimeType: f.mimeType,
-        designIndex: f.designIndex,
-        designFolderName: f.designFolderName,
-        productType: f.productType
-      }))));
+      // Use text/plain to bypass CORS preflight, but send JSON body
+      const payload = {
+        action: 'getUploadUrls',
+        orderId: currentOrderId,
+        customerName: elements.customerName?.value.trim() || '',
+        files: fileMetadata.map(f => ({
+          fileName: f.fileName,
+          mimeType: f.mimeType,
+          designIndex: f.designIndex,
+          designFolderName: f.designFolderName,
+          productType: f.productType
+        }))
+      };
 
-      // Use XMLHttpRequest for better GAS compatibility
+      // Use XMLHttpRequest with JSON body and text/plain header
       const xhr = new XMLHttpRequest();
       xhr.open('POST', GAS_WEB_APP_URL, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
       
       xhr.onload = function() {
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -519,7 +521,7 @@
             reject(new Error('Invalid response from server'));
           }
         } else {
-          reject(new Error(`Server responded with status ${xhr.status}`));
+          reject(new Error(`Server responded with status ${xhr.status}: ${xhr.responseText.substring(0, 200)}`));
         }
       };
       
@@ -533,8 +535,8 @@
       
       xhr.timeout = 60000; // 60 second timeout
       
-      // Send FormData (no Content-Type header - browser sets it automatically)
-      xhr.send(formData);
+      // Send JSON string (GAS parses this correctly)
+      xhr.send(JSON.stringify(payload));
     });
   }
   
@@ -620,20 +622,22 @@
         return;
       }
 
-      // Use FormData to avoid CORS preflight
-      const formData = new FormData();
-      formData.append('action', 'logOrder');
-      formData.append('orderId', payload.orderId);
-      formData.append('customerName', payload.customerName);
-      formData.append('customerEmail', payload.customerEmail || '');
-      formData.append('mobileNumber', payload.mobileNumber);
-      formData.append('formattedSpecs', payload.formattedSpecs);
-      formData.append('folderUrl', payload.folderUrl);
-      formData.append('legalConsent', payload.legalConsent.toString());
+      // Use text/plain to bypass CORS preflight, but send JSON body
+      const requestData = {
+        action: 'logOrder',
+        orderId: payload.orderId,
+        customerName: payload.customerName,
+        customerEmail: payload.customerEmail || '',
+        mobileNumber: payload.mobileNumber,
+        formattedSpecs: payload.formattedSpecs,
+        folderUrl: payload.folderUrl,
+        legalConsent: payload.legalConsent
+      };
 
-      // Use XMLHttpRequest for better GAS compatibility
+      // Use XMLHttpRequest with JSON body and text/plain header
       const xhr = new XMLHttpRequest();
       xhr.open('POST', GAS_WEB_APP_URL, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
       
       xhr.onload = function() {
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -648,7 +652,7 @@
             reject(new Error('Invalid response from server'));
           }
         } else {
-          reject(new Error(`Server responded with status ${xhr.status}`));
+          reject(new Error(`Server responded with status ${xhr.status}: ${xhr.responseText.substring(0, 200)}`));
         }
       };
       
@@ -662,8 +666,8 @@
       
       xhr.timeout = 60000; // 60 second timeout
       
-      // Send FormData (no Content-Type header - browser sets it automatically)
-      xhr.send(formData);
+      // Send JSON string (GAS parses this correctly)
+      xhr.send(JSON.stringify(requestData));
     });
   }
   

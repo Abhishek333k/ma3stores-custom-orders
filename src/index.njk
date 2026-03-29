@@ -126,7 +126,7 @@ description: Securely upload your fashion specifications, fabric details, and hi
                 placeholder="+91 98765 43210"
                 required
                 autocomplete="tel"
-                pattern="^[+]?91[0-9]{10}$"
+                pattern="^[+]?91[\s0-9]{10,14}$"
                 inputmode="tel"
               >
               <span class="field-hint">Enter 10-digit Indian mobile number (e.g., +91 9876543210)</span>
@@ -137,11 +137,23 @@ description: Securely upload your fashion specifications, fabric details, and hi
 
         <!-- Dynamic Sub-Designs Section -->
         <div class="form-group-section">
-          <div class="section-header">
-            <h2 class="section-title">
-              <span class="section-number">2</span>
-              Your Design Specifications
-            </h2>
+          <h2 class="section-title">
+            <span class="section-number">2</span>
+            Your Design Specifications
+          </h2>
+
+          <p class="section-description">
+            Add one or more designs to your order. Each design can include a product type,
+            specifications, and an image file.
+          </p>
+
+          <!-- Sub-Designs Container -->
+          <div id="sub-designs-container" class="sub-designs-container">
+            <!-- Design blocks will be dynamically added here -->
+          </div>
+
+          <!-- Add Design Button (moved below container for better UX) -->
+          <div style="margin-top: var(--spacing-4); text-align: center;">
             <button
               type="button"
               id="add-design-btn"
@@ -153,16 +165,6 @@ description: Securely upload your fashion specifications, fabric details, and hi
               </svg>
               Add Another Design
             </button>
-          </div>
-
-          <p class="section-description">
-            Add one or more designs to your order. Each design can include a product type, 
-            specifications, and an image file.
-          </p>
-
-          <!-- Sub-Designs Container -->
-          <div id="sub-designs-container" class="sub-designs-container">
-            <!-- Design blocks will be dynamically added here -->
           </div>
 
           <!-- File Size Info -->
