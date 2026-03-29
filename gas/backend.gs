@@ -118,93 +118,100 @@ function handleGetUploadUrls_(data, output) {
     if (!data.customerName || !data.files || !Array.isArray(data.files)) {
       throw new Error('Missing required fields: customerName and files array');
     }
-    
+
     if (data.files.length === 0) {
       throw new Error('At least one file is required');
     }
-    
+
     // Get or create main order folder
     const parentFolder = DriveApp.getFolderById(ACTIVE_ORDERS_FOLDER_ID);
     const folderName = data.orderId + " - " + data.customerName.trim();
-    
+
     // Check if folder already exists
     const existingFolders = parentFolder.getFoldersByName(folderName);
     let orderFolder;
-    
+
     if (existingFolders.hasNext()) {
       orderFolder = existingFolders.next();
     } else {
       orderFolder = parentFolder.createFolder(folderName);
     }
-    
+
     const orderFolderId = orderFolder.getId();
     const orderFolderUrl = orderFolder.getUrl();
-    
+
     // Get OAuth token for Drive API
     const token = ScriptApp.getOAuthToken();
-    
+
     // Group files by design folder
     const designFolders = {};
-    const uploadUrls = [];
-    
+    const uploadedFiles = [];
+
     // First pass: create design subfolders
     data.files.forEach(fileData => {
       const designFolderName = fileData.designFolderName || `Design ${fileData.designIndex} - ${fileData.productType}`;
-      
+
       if (!designFolders[designFolderName]) {
         // Create design subfolder
         const designFolder = orderFolder.createFolder(designFolderName);
         designFolders[designFolderName] = designFolder.getId();
       }
     });
-    
-    // Second pass: generate upload URLs for each file
+
+    // Second pass: upload files directly if base64 data provided
     for (let i = 0; i < data.files.length; i++) {
       const fileData = data.files[i];
       const designFolderName = fileData.designFolderName || `Design ${fileData.designIndex} - ${fileData.productType}`;
       const designFolderId = designFolders[designFolderName];
-      
-      // Metadata for the file
-      const payload = {
-        name: fileData.fileName,
-        mimeType: fileData.mimeType,
-        parents: [designFolderId]
-      };
-      
-      // Options for Drive API
-      const options = {
-        method: "post",
-        contentType: "application/json",
-        headers: { "Authorization": "Bearer " + token },
-        payload: JSON.stringify(payload),
-        muteHttpExceptions: true
-      };
-      
-      // Call Drive API to create resumable upload session
-      const response = UrlFetchApp.fetch(
-        "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", 
-        options
-      );
-      
-      if (response.getResponseCode() === 200) {
-        const locationHeader = response.getHeaders()['Location'];
-        uploadUrls.push(locationHeader);
-      } else {
-        throw new Error(`Drive API Error for file ${i}: ${response.getContentText()}`);
+
+      // Check if base64 image data is provided
+      if (fileData.base64Image) {
+        try {
+          // Extract base64 data (remove data URL prefix if present)
+          let base64Data = fileData.base64Image;
+          if (base64Data.includes(',')) {
+            base64Data = base64Data.split(',')[1];
+          }
+
+          // Decode base64 to bytes
+          const bytes = Utilities.base64Decode(base64Data);
+          
+          // Create blob
+          const blob = Utilities.newBlob(bytes, fileData.mimeType, fileData.fileName);
+          
+          // Get design folder and upload file
+          const designFolder = DriveApp.getFolderById(designFolderId);
+          const file = designFolder.createFile(blob);
+          
+          uploadedFiles.push({
+            fileName: fileData.fileName,
+            fileId: file.getId(),
+            fileUrl: file.getUrl()
+          });
+          
+          console.log('Uploaded file:', fileData.fileName, 'to folder:', designFolderName);
+        } catch (e) {
+          console.error('Failed to upload file:', e.toString());
+          throw new Error(`Failed to upload file ${i}: ${e.toString()}`);
+        }
       }
     }
 
+    // Return success with uploaded file info
     const responseData = {
       status: 'success',
-      uploadUrls: uploadUrls,
+      uploadUrls: [], // Not needed when we upload directly
+      uploadedFiles: uploadedFiles,
       folderUrl: orderFolderUrl,
       orderId: data.orderId,
-      message: `Created ${Object.keys(designFolders).length} design folders`
+      message: `Created ${Object.keys(designFolders).length} design folders, uploaded ${uploadedFiles.length} files`
     };
     
-    const output = ContentService.createTextOutput(JSON.stringify(responseData));
+    output.setContent(JSON.stringify(responseData));
     output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
+    output.setHeader("Access-Control-Allow-Origin", "*");
+    output.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    output.setHeader("Access-Control-Allow-Headers", "Content-Type");
     return output;
 
   } catch (error) {
@@ -214,7 +221,7 @@ function handleGetUploadUrls_(data, output) {
     };
     const output = ContentService.createTextOutput(JSON.stringify(errorData));
     output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
+    output.setHeader("Access-Control-Allow-Origin", "*");
     return output;
   }
 }

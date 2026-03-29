@@ -488,130 +488,86 @@
       }
 
       // Use text/plain to bypass CORS preflight, but send JSON body
+      // Build payload with base64 images
       const payload = {
         action: 'getUploadUrls',
         orderId: currentOrderId,
         customerName: elements.customerName?.value.trim() || '',
-        files: fileMetadata.map(f => ({
+        files: await Promise.all(fileMetadata.map(async f => ({
           fileName: f.fileName,
           mimeType: f.mimeType,
           designIndex: f.designIndex,
           designFolderName: f.designFolderName,
-          productType: f.productType
-        }))
+          productType: f.productType,
+          base64Image: await fileToBase64(f.file) // Convert file to base64
+        })))
       };
 
       console.log('Sending to GAS:', GAS_WEB_APP_URL);
       console.log('Payload:', payload);
 
-      // Use XMLHttpRequest with no-cors mode to bypass CORS
-      // Note: We won't get response data, but the request will complete
+      // Use text/plain to bypass CORS preflight, but send JSON
       const xhr = new XMLHttpRequest();
       xhr.open('POST', GAS_WEB_APP_URL, true);
-      
-      // Don't set Content-Type header - let browser use default for simple request
-      // This avoids preflight entirely
+      xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
       
       xhr.onload = function() {
         console.log('XHR completed with status:', xhr.status);
         console.log('Response text:', xhr.responseText);
         
-        // With no-cors, status will be 0 but request still goes through
-        // Try to parse response if available
+        // Parse response
         if (xhr.responseText && xhr.responseText.length > 0) {
           try {
             const data = JSON.parse(xhr.responseText);
             if (data.status === 'success') {
+              console.log('✓ GAS response:', data);
               resolve({
                 success: true,
                 orderId: data.orderId,
                 folderUrl: data.folderUrl,
-                uploadUrls: data.uploadUrls.map((url, i) => ({
-                  uploadUrl: url,
-                  index: i,
-                  fileName: fileMetadata[i].fileName,
-                  mimeType: fileMetadata[i].mimeType,
-                  designIndex: fileMetadata[i].designIndex,
-                  designFolderName: fileMetadata[i].designFolderName
-                })),
-                isMock: false // Real response from GAS
+                uploadUrls: data.uploadUrls || [],
+                isMock: false
               });
+              return;
+            } else {
+              reject(new Error(data.message || 'GAS returned error'));
               return;
             }
           } catch (e) {
-            console.log('Response not JSON, continuing...');
+            console.error('Failed to parse GAS response:', e);
           }
         }
         
-        // If we get here, assume success (folders were created)
-        // Return mock data to continue flow
-        console.warn('No response data, assuming success...');
-        resolve({
-          success: true,
-          orderId: currentOrderId,
-          folderUrl: 'https://drive.google.com/drive/folders/' + ACTIVE_ORDERS_FOLDER_ID,
-          uploadUrls: fileMetadata.map((f, i) => ({
-            uploadUrl: 'MOCK-' + i,
-            index: i,
-            fileName: f.fileName,
-            mimeType: f.mimeType,
-            designIndex: f.designIndex,
-            designFolderName: f.designFolderName
-          })),
-          isMock: true
-        });
+        reject(new Error('No response from server'));
       };
       
       xhr.onerror = function() {
-        console.error('XHR network error - but request may have completed');
-        // Even on error, continue with mock data since GAS often triggers this
-        console.warn('Continuing with mock data (folders created in Drive)...');
-        resolve({
-          success: true,
-          orderId: currentOrderId,
-          folderUrl: 'https://drive.google.com/drive/folders/' + ACTIVE_ORDERS_FOLDER_ID,
-          uploadUrls: fileMetadata.map((f, i) => ({
-            uploadUrl: 'MOCK-' + i, // Mark as mock so we skip actual upload
-            index: i,
-            fileName: f.fileName,
-            mimeType: f.mimeType,
-            designIndex: f.designIndex,
-            designFolderName: f.designFolderName
-          })),
-          isMock: true // Flag to skip actual upload
-        });
+        console.error('XHR network error');
+        reject(new Error('Network error - check console'));
       };
       
       xhr.ontimeout = function() {
         console.error('XHR timeout');
-        reject(new Error('Request timeout - please try again'));
+        reject(new Error('Request timeout'));
       };
       
-      xhr.timeout = 90000; // 90 second timeout
+      xhr.timeout = 90000;
       
-      // Send as form data to avoid CORS preflight
-      const formData = new FormData();
-      formData.append('action', payload.action);
-      formData.append('orderId', payload.orderId);
-      formData.append('customerName', payload.customerName);
-      formData.append('files', JSON.stringify(payload.files));
-      
-      console.log('Sending FormData (no CORS preflight)');
-      xhr.send(formData);
+      // Send JSON with text/plain header (CORS bypass)
+      const jsonString = JSON.stringify(payload);
+      console.log('Sending JSON payload:', jsonString.substring(0, 200) + '...');
+      xhr.send(jsonString);
     });
   }
   
   async function uploadFilesToDrive_(fileMetadata, uploadUrls) {
     const results = [];
     
-    // Check if these are mock URLs (GAS CORS workaround)
-    const isMock = uploadUrls[0]?.uploadUrl?.startsWith('MOCK-');
-    
-    if (isMock) {
-      console.log('Mock URLs detected - skipping actual upload, assuming GAS created folders');
-      // Simulate successful uploads
+    // If uploadUrls is empty, backend already uploaded the files
+    // Just return success for each file
+    if (!uploadUrls || uploadUrls.length === 0) {
+      console.log('Backend uploaded files directly, skipping frontend upload');
       for (let i = 0; i < fileMetadata.length; i++) {
-        await sleep(100); // Small delay for realism
         results.push({
           success: true,
           fileName: fileMetadata[i].fileName,
@@ -623,7 +579,7 @@
       return results;
     }
     
-    // Real upload flow (if we ever get real URLs from GAS)
+    // Real upload flow (if we ever get upload URLs)
     for (let i = 0; i < fileMetadata.length; i++) {
       const metaData = fileMetadata[i];
       const uploadInfo = uploadUrls.find(u => u.index === i) || uploadUrls[i];
@@ -750,6 +706,16 @@
   
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Helper: Convert File to base64
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   // ============================================================================
