@@ -43,11 +43,18 @@
   // ============================================================================
   
   function init() {
-    cacheElements();
-    bindEvents();
-    checkOrderStatus();
-    addDesignBlock();
-    console.log('Design Portal v3.0 initialized (Multiple Images per Design)');
+    try {
+      cacheElements();
+      bindEvents();
+      checkOrderStatus();
+      
+      // Add initial design block
+      console.log('Adding initial design block...');
+      addDesignBlock();
+      console.log('Design Portal v3.0 initialized (Multiple Images per Design)');
+    } catch (error) {
+      console.error('Failed to initialize portal:', error);
+    }
   }
   
   function cacheElements() {
@@ -126,34 +133,42 @@
   function addDesignBlock() {
     designCount++;
     
+    console.log('Adding design block #', designCount);
+    console.log('Template:', elements.designBlockTemplate);
+    console.log('Container:', elements.subDesignsContainer);
+
     if (!elements.designBlockTemplate || !elements.subDesignsContainer) {
       console.error('Design template or container not found');
       return;
     }
-    
+
     const template = elements.designBlockTemplate;
     const clone = template.content.cloneNode(true);
     const designBlock = clone.querySelector('.design-block');
     
+    console.log('Design block created:', designBlock);
+
     designBlock.dataset.designIndex = designCount;
-    
+
     const designNumber = designBlock.querySelector('.design-number');
     if (designNumber) designNumber.textContent = `Design ${designCount}`;
-    
+
     const removeBtn = designBlock.querySelector('.btn-remove-design');
     if (removeBtn) {
       removeBtn.addEventListener('click', function() {
         removeDesignBlock(designBlock);
       });
     }
-    
+
     const fileInput = designBlock.querySelector('.field-file');
     if (fileInput) {
       fileInput.addEventListener('change', handleFileInputChange);
     }
-    
+
     elements.subDesignsContainer.appendChild(designBlock);
     updateRemoveButtonsVisibility();
+    
+    console.log('Design block added successfully');
   }
   
   function removeDesignBlock(designBlock) {
