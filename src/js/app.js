@@ -468,9 +468,9 @@
     }
 
     try {
+      // CORS bypass: Using text/plain to avoid OPTIONS preflight
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        mode: 'cors',
         redirect: 'follow',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
@@ -600,9 +600,9 @@
     }
 
     try {
+      // CORS bypass: Using text/plain to avoid OPTIONS preflight
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        mode: 'cors',
         redirect: 'follow',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'

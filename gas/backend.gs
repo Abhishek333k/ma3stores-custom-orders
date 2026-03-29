@@ -171,22 +171,25 @@ function handleGetUploadUrls_(data, output) {
         throw new Error(`Drive API Error for file ${i}: ${response.getContentText()}`);
       }
     }
-    
-    output.setContent(JSON.stringify({
+
+    const output = ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       uploadUrls: uploadUrls,
       folderUrl: orderFolderUrl,
       orderId: data.orderId,
       message: `Created ${Object.keys(designFolders).length} design folders`
     }));
-    
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader("Access-Control-Allow-Origin", "*");
     return output;
-    
+
   } catch (error) {
-    output.setContent(JSON.stringify({ 
-      status: 'error', 
-      message: 'getUploadUrls: ' + error.toString() 
+    const output = ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'getUploadUrls: ' + error.toString()
     }));
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader("Access-Control-Allow-Origin", "*");
     return output;
   }
 }
@@ -223,20 +226,23 @@ function handleLogOrder_(data, output) {
       data.folderUrl || '',          // Folder URL
       data.legalConsent ? "Granted" : "Failed"  // Legal Consent
     ]);
-    
-    output.setContent(JSON.stringify({ 
-      status: 'success', 
+
+    const output = ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
       message: 'Order Logged Successfully',
       orderId: data.orderId
     }));
-    
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader("Access-Control-Allow-Origin", "*");
     return output;
-    
+
   } catch (error) {
-    output.setContent(JSON.stringify({ 
-      status: 'error', 
-      message: 'logOrder: ' + error.toString() 
+    const output = ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'logOrder: ' + error.toString()
     }));
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader("Access-Control-Allow-Origin", "*");
     return output;
   }
 }
