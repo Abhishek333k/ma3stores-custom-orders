@@ -1,16 +1,12 @@
 /**
- * Custom Design Submission Portal - Frontend JavaScript v2.0
+ * MA³ Store Custom Design Portal - Frontend JavaScript v3.0
  * 
- * DIRECT BINARY UPLOAD ARCHITECTURE
+ * MULTIPLE IMAGE UPLOADS PER DESIGN
+ * - Supports up to 10 images per design block
+ * - Dynamic image preview generation
+ * - Groups files by design for backend folder structure
  * 
- * Two-step upload flow:
- * 1. Request secure upload URLs from backend (getUploadUrls)
- * 2. Upload files directly to Google Drive via PUT requests
- * 3. Log order metadata to backend (logOrder)
- * 
- * Supports files up to 50MB each via Google Drive Resumable Upload API
- * 
- * @version 2.0.0
+ * @version 3.0.0
  */
 
 (function() {
@@ -20,31 +16,11 @@
   // CONFIGURATION
   // ============================================================================
   
-  /**
-   * Google Apps Script Web App URL
-   * MA³ Store Custom Design Portal Backend - Production
-   */
   const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwKi5hsux90xle87zSvEQXURDke3erz12cPebmtTBTAX6Lc9zu5NKK4jtDkdcQK_NkC/exec';
-  
-  /**
-   * Support email address
-   */
   const SUPPORT_EMAIL = 'myma3store@gmail.com';
-  
-  /**
-   * Maximum individual file size (50MB) - Google Drive resumable upload limit
-   */
-  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-  
-  /**
-   * Maximum total size for all files combined (200MB)
-   */
-  const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
-  
-  /**
-   * Upload timeout in milliseconds (10 minutes for large files)
-   */
-  const UPLOAD_TIMEOUT = 10 * 60 * 1000;
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
+  const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB total
+  const MAX_FILES_PER_DESIGN = 10;
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -59,37 +35,7 @@
   // DOM ELEMENTS
   // ============================================================================
   
-  const elements = {
-    // Modal
-    capacityModal: null,
-    modalCloseBtn: null,
-    
-    // Loading
-    loadingOverlay: null,
-    loadingText: null,
-    loadingSubtext: null,
-    
-    // Form sections
-    formSection: null,
-    successSection: null,
-    designForm: null,
-    
-    // Form fields
-    customerName: null,
-    customerEmail: null,
-    customerMobile: null,
-    legalConsent: null,
-    
-    // Dynamic designs
-    subDesignsContainer: null,
-    addDesignBtn: null,
-    designBlockTemplate: null,
-    
-    // Submit
-    submitBtn: null,
-    btnText: null,
-    btnLoading: null
-  };
+  const elements = {};
 
   // ============================================================================
   // INITIALIZATION
@@ -100,8 +46,7 @@
     bindEvents();
     checkOrderStatus();
     addDesignBlock();
-    
-    console.log('Design Portal v2.0 initialized (Direct Binary Upload)');
+    console.log('Design Portal v3.0 initialized (Multiple Images per Design)');
   }
   
   function cacheElements() {
@@ -121,8 +66,6 @@
     elements.addDesignBtn = document.getElementById('add-design-btn');
     elements.designBlockTemplate = document.getElementById('design-block-template');
     elements.submitBtn = document.getElementById('submit-btn');
-    elements.btnText = elements.submitBtn?.querySelector('.btn-text');
-    elements.btnLoading = elements.submitBtn?.querySelector('.btn-loading');
   }
   
   function bindEvents() {
@@ -131,7 +74,6 @@
     elements.addDesignBtn?.addEventListener('click', addDesignBlock);
     elements.designForm?.addEventListener('submit', handleFormSubmit);
     document.addEventListener('change', handleFileInputChange);
-    
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && elements.capacityModal && !elements.capacityModal.hidden) {
         hideCapacityModal();
@@ -142,7 +84,7 @@
   // ============================================================================
   // ORDER STATUS CHECK
   // ============================================================================
-
+  
   async function checkOrderStatus() {
     if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
       console.warn('GAS_WEB_APP_URL not configured');
@@ -150,28 +92,20 @@
     }
 
     try {
-      const response = await fetch(GAS_WEB_APP_URL, {
+      await fetch(GAS_WEB_APP_URL, {
         method: 'GET',
-        // Note: GAS handles CORS automatically, but we use no-cors for initial check
         mode: 'no-cors',
         cache: 'no-cache'
       });
-
-      // With no-cors mode, we can't read the response body
-      // So we assume success and let the form work
       console.log('Order status check completed (opaque response)');
-      // Don't show capacity modal on error - fail open
-      
     } catch (error) {
       console.error('Error checking order status:', error);
-      // Fail open - allow form to be used
     }
   }
   
   function showCapacityModal() {
     if (elements.capacityModal) {
       elements.capacityModal.hidden = false;
-      elements.capacityModal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
       elements.modalCloseBtn?.focus();
     }
@@ -180,7 +114,6 @@
   function hideCapacityModal() {
     if (elements.capacityModal) {
       elements.capacityModal.hidden = true;
-      elements.capacityModal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
     }
   }
@@ -245,7 +178,6 @@
   
   function updateRemoveButtonsVisibility() {
     const removeBtns = elements.subDesignsContainer?.querySelectorAll('.btn-remove-design') || [];
-    
     if (removeBtns.length <= 1) {
       removeBtns.forEach(btn => btn.style.visibility = 'hidden');
     } else {
@@ -254,72 +186,139 @@
   }
 
   // ============================================================================
-  // FILE HANDLING
+  // FILE HANDLING - MULTIPLE IMAGES WITH PREVIEWS
   // ============================================================================
   
   function handleFileInputChange(e) {
     const fileInput = e.target;
     if (!fileInput.classList.contains('field-file')) return;
     
-    const file = fileInput.files[0];
-    if (!file) return;
+    const files = Array.from(fileInput.files);
+    if (files.length === 0) return;
     
     const designBlock = fileInput.closest('.design-block');
-    const previewContainer = designBlock?.querySelector('.file-preview');
-    const previewImage = previewContainer?.querySelector('.file-preview-image');
-    const previewName = previewContainer?.querySelector('.file-preview-name');
-    const previewSize = previewContainer?.querySelector('.file-preview-size');
+    const previewContainer = designBlock?.querySelector('.image-preview-container');
     const errorSpan = designBlock?.querySelector('.file-error');
     
-    // Validate file type
-    const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
-    if (!validTypes.includes(file.type)) {
-      showError(errorSpan, 'Please select a valid image file (PNG, JPG, GIF, WebP, or SVG)');
+    // Validate file count
+    if (files.length > MAX_FILES_PER_DESIGN) {
+      showError(errorSpan, `Maximum ${MAX_FILES_PER_DESIGN} images allowed per design`);
       fileInput.value = '';
       if (previewContainer) previewContainer.hidden = true;
       return;
     }
     
-    // Validate file size (50MB limit)
-    if (file.size > MAX_FILE_SIZE) {
-      showError(errorSpan, `File is too large. Maximum size is ${formatFileSize(MAX_FILE_SIZE)}`);
-      fileInput.value = '';
-      if (previewContainer) previewContainer.hidden = true;
-      return;
+    // Validate each file
+    const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        showError(errorSpan, `Invalid file type: ${file.name}. Please upload images only (PNG, JPG, GIF, WebP, SVG)`);
+        fileInput.value = '';
+        if (previewContainer) previewContainer.hidden = true;
+        return;
+      }
+      
+      if (file.size > MAX_FILE_SIZE) {
+        showError(errorSpan, `File "${file.name}" exceeds ${formatFileSize(MAX_FILE_SIZE)} limit`);
+        fileInput.value = '';
+        if (previewContainer) previewContainer.hidden = true;
+        return;
+      }
+    }
+    
+    // Clear previous previews and generate new ones
+    if (previewContainer) {
+      previewContainer.innerHTML = '';
+      previewContainer.hidden = false;
+      
+      // Generate preview for each file
+      files.forEach((file, index) => {
+        generateImagePreview_(file, previewContainer, fileInput, index);
+      });
     }
     
     clearError(errorSpan);
+  }
+  
+  function generateImagePreview_(file, container, fileInput, index) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const previewItem = document.createElement('div');
+      previewItem.className = 'image-preview-item';
+      previewItem.dataset.fileIndex = index;
+      
+      previewItem.innerHTML = `
+        <img src="${e.target.result}" alt="${file.name}" class="image-preview-thumb">
+        <div class="image-preview-info">
+          <span class="image-preview-name" title="${file.name}">${file.name}</span>
+          <span class="image-preview-size">${formatFileSize(file.size)}</span>
+        </div>
+        <button type="button" class="image-preview-remove" aria-label="Remove image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      `;
+      
+      // Remove button handler
+      const removeBtn = previewItem.querySelector('.image-preview-remove');
+      removeBtn.addEventListener('click', function() {
+        removeImageFromInput_(previewItem, fileInput, container);
+      });
+      
+      container.appendChild(previewItem);
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  function removeImageFromInput_(previewItem, fileInput, container) {
+    const fileIndex = parseInt(previewItem.dataset.fileIndex);
+    const files = Array.from(fileInput.files);
+    files.splice(fileIndex, 1);
     
-    // Show preview
-    if (previewContainer && previewImage && previewName && previewSize) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        previewImage.src = e.target.result;
-        previewName.textContent = file.name;
-        previewSize.textContent = formatFileSize(file.size);
-        previewContainer.hidden = false;
-      };
-      reader.readAsDataURL(file);
+    // Create new FileList
+    const dataTransfer = new DataTransfer();
+    files.forEach(file => dataTransfer.items.add(file));
+    fileInput.files = dataTransfer.files;
+    
+    // Remove preview element
+    previewItem.remove();
+    
+    // Hide container if no files left
+    if (files.length === 0) {
+      container.hidden = true;
+      container.innerHTML = '';
     }
   }
   
   function getTotalFileSize() {
     const fileInputs = document.querySelectorAll('.field-file');
     let totalSize = 0;
-    const files = [];
+    const designs = [];
     
-    fileInputs.forEach(input => {
-      const file = input.files[0];
-      if (file) {
-        totalSize += file.size;
-        files.push({
-          file: file,
-          designBlock: input.closest('.design-block')
+    fileInputs.forEach((input, designIndex) => {
+      const files = Array.from(input.files);
+      const designBlock = input.closest('.design-block');
+      const productType = designBlock?.querySelector('[name="productType"]')?.value || 'Custom';
+      
+      if (files.length > 0) {
+        const designSize = files.reduce((sum, file) => sum + file.size, 0);
+        totalSize += designSize;
+        
+        designs.push({
+          designIndex: designIndex + 1,
+          productType: productType,
+          files: files.map(file => ({
+            file: file,
+            size: file.size
+          })),
+          totalSize: designSize,
+          designBlock: designBlock
         });
       }
     });
     
-    return { totalSize, files };
+    return { totalSize, designs };
   }
   
   function formatFileSize(bytes) {
@@ -331,23 +330,18 @@
   }
 
   // ============================================================================
-  // FORM SUBMISSION - TWO-STEP UPLOAD FLOW
+  // FORM SUBMISSION - V3.0 WITH MULTI-IMAGE SUPPORT
   // ============================================================================
   
   async function handleFormSubmit(e) {
     e.preventDefault();
     
     if (isSubmitting) return;
-    
     if (!validateForm()) return;
     
-    // Check total file size
-    const { totalSize, files } = getTotalFileSize();
+    const { totalSize, designs } = getTotalFileSize();
     if (totalSize > MAX_TOTAL_SIZE) {
-      alert(
-        `Total file size (${formatFileSize(totalSize)}) exceeds the maximum allowed size of ${formatFileSize(MAX_TOTAL_SIZE)}.\n\n` +
-        'Please reduce the number or size of images.'
-      );
+      alert(`Total file size (${formatFileSize(totalSize)}) exceeds maximum allowed (${formatFileSize(MAX_TOTAL_SIZE)}).`);
       return;
     }
     
@@ -355,48 +349,50 @@
     clearAllErrors();
     
     try {
-      // ==========================================================================
-      // STEP 1: Request secure upload URLs from backend
-      // ==========================================================================
-      setLoadingState(true, 'Requesting secure upload tunnel...', 'Generating secure URLs for your files');
-
-      // Generate Order ID locally
+      // Generate Order ID
       const timestamp = new Date();
       const dateStr = timestamp.toISOString().slice(0, 10).replace(/-/g, '');
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       currentOrderId = `ORD-${dateStr}-${randomNum}`;
-
-      const fileMetadata = files.map((f, index) => {
-        const block = f.designBlock;
-        const productType = block.querySelector('[name="productType"]')?.value || 'Custom';
-        const extension = f.file.name.split('.').pop() || 'png';
-        return {
-          fileName: `design-${index + 1}-${productType.replace(/\s+/g, '-').toLowerCase()}.${extension}`,
-          mimeType: f.file.type,
-          productType: productType
-        };
+      
+      setLoadingState(true, 'Requesting secure upload tunnel...', 'Generating secure URLs for your files');
+      
+      // Build file metadata grouped by design
+      const allFileMetadata = [];
+      designs.forEach(design => {
+        const designFolderName = `Design ${design.designIndex} - ${design.productType}`;
+        
+        design.files.forEach((fileData, fileIndex) => {
+          allFileMetadata.push({
+            designIndex: design.designIndex,
+            designFolderName: designFolderName,
+            productType: design.productType,
+            fileName: `design-${design.designIndex}-${fileIndex + 1}-${design.productType.replace(/\s+/g, '-').toLowerCase()}.${fileData.file.name.split('.').pop()}`,
+            mimeType: fileData.file.type,
+            file: fileData.file,
+            designBlock: design.designBlock
+          });
+        });
       });
-
-      const uploadUrlsResponse = await requestUploadUrls_(fileMetadata);
-
+      
+      // STEP 1: Get Upload URLs
+      const uploadUrlsResponse = await requestUploadUrls_(allFileMetadata);
+      
       if (!uploadUrlsResponse.success) {
         throw new Error(uploadUrlsResponse.error || 'Failed to get upload URLs');
       }
-
+      
       currentOrderId = uploadUrlsResponse.orderId || currentOrderId;
       currentFolderUrl = uploadUrlsResponse.folderUrl;
-
+      
       console.log('Order ID:', currentOrderId);
       console.log('Folder URL:', currentFolderUrl);
       
-      // ==========================================================================
-      // STEP 2: Upload files directly to Google Drive via PUT requests
-      // ==========================================================================
-      setLoadingState(true, 'Uploading high-resolution files...', `Uploading ${files.length} design file(s) to secure storage`);
+      // STEP 2: Upload files to Drive
+      setLoadingState(true, 'Uploading high-resolution files...', `Uploading ${allFileMetadata.length} images to secure storage`);
       
-      const uploadResults = await uploadFilesToDrive_(files, uploadUrlsResponse.uploadUrls);
+      const uploadResults = await uploadFilesToDrive_(allFileMetadata, uploadUrlsResponse.uploadUrls);
       
-      // Check for upload failures
       const failedUploads = uploadResults.filter(r => !r.success);
       if (failedUploads.length > 0) {
         throw new Error(`Failed to upload ${failedUploads.length} file(s). Please try again.`);
@@ -404,22 +400,27 @@
       
       console.log('All files uploaded successfully:', uploadResults);
       
-      // ==========================================================================
-      // STEP 3: Log order metadata to backend
-      // ==========================================================================
+      // STEP 3: Log order
       setLoadingState(true, 'Finalizing order...', 'Saving your order details to our system');
-
-      // Format specs as bulleted list (matching backend expectation)
-      const formattedSpecs = uploadResults.map((result, index) => {
-        const productType = fileMetadata[index].productType;
-        const specs = files[index].designBlock.querySelector('[name="specs"]')?.value || '';
-        return `• ${productType}: ${specs}`;
-      }).join('\n');
-
+      
+      // Group upload results by design for formatted specs
+      const designsSpecs = {};
+      uploadResults.forEach(result => {
+        const designKey = `Design ${result.designIndex} - ${result.productType}`;
+        if (!designsSpecs[designKey]) {
+          designsSpecs[designKey] = [];
+        }
+        designsSpecs[designKey].push(result.fileName);
+      });
+      
+      const formattedSpecs = Object.entries(designsSpecs)
+        .map(([design, files]) => `• ${design}: ${files.length} image(s) uploaded`)
+        .join('\n');
+      
       const logOrderPayload = {
         orderId: currentOrderId,
         customerName: elements.customerName?.value.trim() || '',
-        email: elements.customerEmail?.value.trim() || '',
+        customerEmail: elements.customerEmail?.value.trim() || '',
         mobileNumber: elements.customerMobile?.value.trim() || '',
         formattedSpecs: formattedSpecs,
         folderUrl: currentFolderUrl,
@@ -432,9 +433,7 @@
         throw new Error(logResponse.error || 'Failed to log order');
       }
       
-      // ==========================================================================
-      // SUCCESS: Show confirmation
-      // ==========================================================================
+      // SUCCESS
       handleSuccess({
         orderId: currentOrderId,
         folderUrl: currentFolderUrl
@@ -449,12 +448,8 @@
     }
   }
   
-  /**
-   * STEP 1: Request upload URLs from backend
-   */
   async function requestUploadUrls_(fileMetadata) {
     if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
-      // Development mode - simulate response
       console.log('Development mode - simulating upload URLs');
       await sleep(1000);
       return {
@@ -462,20 +457,17 @@
         orderId: 'ORD-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-DEV',
         folderUrl: '#',
         uploadUrls: fileMetadata.map((f, i) => ({
+          uploadUrl: 'https://mock-upload-url.example.com/' + i,
+          index: i,
           fileName: f.fileName,
           mimeType: f.mimeType,
-          uploadUrl: 'https://mock-upload-url.example.com/' + i,
-          index: i
+          designIndex: f.designIndex,
+          designFolderName: f.designFolderName
         }))
       };
     }
 
-    console.log('Requesting upload URLs from:', GAS_WEB_APP_URL);
-
     try {
-      // CORS-compliant fetch for Google Apps Script
-      // Using text/plain to bypass OPTIONS preflight
-      // redirect: 'follow' is required for GAS 302 redirects
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'cors',
@@ -485,29 +477,28 @@
         },
         body: JSON.stringify({
           action: 'getUploadUrls',
-          orderId: currentOrderId || 'ORD-TEMP-' + Date.now(),
+          orderId: currentOrderId,
           customerName: elements.customerName?.value.trim() || '',
-          files: fileMetadata
+          files: fileMetadata.map(f => ({
+            fileName: f.fileName,
+            mimeType: f.mimeType,
+            designIndex: f.designIndex,
+            designFolderName: f.designFolderName,
+            productType: f.productType
+          }))
         })
       });
 
-      console.log('Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server error response:', errorText);
         throw new Error(`Server responded with status ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
       const data = await response.json();
-      console.log('Upload URLs response:', data);
 
       if (data.status !== 'success') {
         throw new Error(data.message || 'Failed to get upload URLs');
       }
-
-      currentOrderId = data.orderId || currentOrderId;
-      currentFolderUrl = data.folderUrl;
 
       return {
         success: true,
@@ -517,7 +508,9 @@
           uploadUrl: url,
           index: i,
           fileName: fileMetadata[i].fileName,
-          mimeType: fileMetadata[i].mimeType
+          mimeType: fileMetadata[i].mimeType,
+          designIndex: fileMetadata[i].designIndex,
+          designFolderName: fileMetadata[i].designFolderName
         }))
       };
 
@@ -527,38 +520,36 @@
     }
   }
   
-  /**
-   * STEP 2: Upload files directly to Google Drive
-   */
-  async function uploadFilesToDrive_(files, uploadUrls) {
+  async function uploadFilesToDrive_(fileMetadata, uploadUrls) {
     const results = [];
     
-    for (let i = 0; i < files.length; i++) {
-      const fileData = files[i];
+    for (let i = 0; i < fileMetadata.length; i++) {
+      const metaData = fileMetadata[i];
       const uploadInfo = uploadUrls.find(u => u.index === i) || uploadUrls[i];
       
       try {
-        setLoadingState(true, 'Uploading files...', `Uploading ${i + 1} of ${files.length}: ${fileData.file.name}`);
+        setLoadingState(true, 'Uploading files...', `Uploading ${i + 1} of ${fileMetadata.length}: ${metaData.fileName}`);
         
         if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
-          // Development mode - simulate upload
-          await sleep(500 + Math.random() * 1000);
+          await sleep(300 + Math.random() * 500);
           results.push({
             success: true,
             fileName: uploadInfo.fileName,
+            designIndex: uploadInfo.designIndex,
+            productType: metaData.productType,
             index: i
           });
           continue;
         }
         
-        // Production mode - upload directly to Drive via PUT
-        const uploadResult = await uploadToDriveUrl_(fileData.file, uploadInfo.uploadUrl);
+        const uploadResult = await uploadToDriveUrl_(metaData.file, uploadInfo.uploadUrl);
         
         results.push({
           success: uploadResult.success,
           fileName: uploadInfo.fileName,
-          index: i,
-          response: uploadResult.response
+          designIndex: uploadInfo.designIndex,
+          productType: metaData.productType,
+          index: i
         });
         
       } catch (error) {
@@ -566,6 +557,7 @@
         results.push({
           success: false,
           fileName: uploadInfo?.fileName || `file-${i}`,
+          designIndex: uploadInfo?.designIndex || 0,
           index: i,
           error: error.message
         });
@@ -575,20 +567,7 @@
     return results;
   }
   
-  /**
-   * Upload a single file to Google Drive using resumable upload URL
-   */
   async function uploadToDriveUrl_(file, uploadUrl) {
-    // For security reasons, we cannot directly upload to Google's upload URL from browser
-    // The upload URL is meant for server-side use
-    // 
-    // WORKAROUND: We'll use a proxy approach or the simpler insert method
-    // 
-    // OPTION 1: Use the upload URL with CORS workaround (may not work due to CORS)
-    // OPTION 2: Fall back to Base64 for smaller files
-    // OPTION 3: Use a Cloud Function proxy
-    
-    // For now, we'll attempt direct upload with proper headers
     try {
       const response = await fetch(uploadUrl, {
         method: 'PUT',
@@ -605,40 +584,22 @@
         throw new Error(`Upload failed: ${response.status} - ${errorText}`);
       }
       
-      const result = await response.json();
-      
-      return {
-        success: true,
-        response: result
-      };
+      return { success: true, response: await response.json() };
       
     } catch (error) {
-      // If direct upload fails, we may need to use a different approach
-      console.warn('Direct upload failed, error:', error.message);
+      console.warn('Direct upload failed:', error.message);
       throw error;
     }
   }
   
-  /**
-   * STEP 3: Log order to backend after files are uploaded
-   */
   async function logOrder_(payload) {
     if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
       console.log('Development mode - simulating order logging');
       await sleep(500);
-      return {
-        success: true,
-        orderId: payload.orderId,
-        sheetRow: 2
-      };
+      return { success: true, orderId: payload.orderId, sheetRow: 2 };
     }
 
-    console.log('Logging order to backend:', payload.orderId);
-
     try {
-      // CORS-compliant fetch for Google Apps Script
-      // Using text/plain to bypass OPTIONS preflight
-      // redirect: 'follow' is required for GAS 302 redirects
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'cors',
@@ -650,7 +611,7 @@
           action: 'logOrder',
           orderId: payload.orderId,
           customerName: payload.customerName,
-          customerEmail: payload.email || '',
+          customerEmail: payload.customerEmail,
           mobileNumber: payload.mobileNumber,
           formattedSpecs: payload.formattedSpecs,
           folderUrl: payload.folderUrl,
@@ -658,16 +619,11 @@
         })
       });
 
-      console.log('Log order response status:', response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Log order error:', errorText);
         throw new Error(`Server responded with status ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Order logged:', data);
 
       if (data.status !== 'success') {
         throw new Error(data.message || 'Failed to log order');
@@ -692,7 +648,7 @@
   function validateForm() {
     let isValid = true;
     
-    // Validate name
+    // Name
     if (!elements.customerName?.value.trim()) {
       showError(document.getElementById('name-error'), 'Please enter your full name');
       elements.customerName?.classList.add('error');
@@ -701,10 +657,9 @@
       elements.customerName?.classList.remove('error');
     }
     
-    // Validate email (optional)
+    // Email (optional)
     const email = elements.customerEmail?.value.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email && !emailRegex.test(email)) {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showError(document.getElementById('email-error'), 'Please enter a valid email address');
       elements.customerEmail?.classList.add('error');
       isValid = false;
@@ -713,15 +668,13 @@
       clearError(document.getElementById('email-error'));
     }
     
-    // Validate mobile (Indian format - required)
+    // Mobile (Indian format)
     const mobile = elements.customerMobile?.value.trim();
-    const mobileRegex = /^[+]?91[0-9]{10}$/;
-    
     if (!mobile) {
       showError(document.getElementById('mobile-error'), 'Mobile number is required');
       elements.customerMobile?.classList.add('error');
       isValid = false;
-    } else if (!mobileRegex.test(mobile.replace(/\s/g, ''))) {
+    } else if (!/^[+]?91[0-9]{10}$/.test(mobile.replace(/\s/g, ''))) {
       showError(document.getElementById('mobile-error'), 'Enter valid Indian mobile (e.g., +91 9876543210)');
       elements.customerMobile?.classList.add('error');
       isValid = false;
@@ -729,18 +682,18 @@
       elements.customerMobile?.classList.remove('error');
     }
     
-    // Validate consent
+    // Consent
     if (!elements.legalConsent?.checked) {
-      showError(document.getElementById('consent-error'), 'You must confirm the IP Declaration to proceed');
+      showError(document.getElementById('consent-error'), 'You must confirm the IP Declaration');
       isValid = false;
     } else {
       clearError(document.getElementById('consent-error'));
     }
     
-    // Validate design blocks
+    // Designs
     const designBlocks = elements.subDesignsContainer?.querySelectorAll('.design-block') || [];
     if (designBlocks.length === 0) {
-      alert('Please add at least one design to your order');
+      alert('Please add at least one design');
       isValid = false;
     }
     
@@ -765,7 +718,7 @@
       }
       
       if (!fileInput?.files.length) {
-        showError(fileError, 'Please upload a design image');
+        showError(fileError, 'Please upload at least one image');
         isValid = false;
       } else {
         clearError(fileError);
@@ -781,78 +734,52 @@
   }
 
   // ============================================================================
-  // UI STATE MANAGEMENT
+  // UI STATE
   // ============================================================================
   
   function handleSuccess(response) {
     if (elements.formSection) elements.formSection.hidden = true;
-    
     if (elements.successSection) {
       elements.successSection.hidden = false;
-      
-      const orderIdEl = document.getElementById('success-order-id');
-      const emailEl = document.getElementById('success-email');
-      if (orderIdEl) orderIdEl.textContent = response.orderId || 'N/A';
-      if (emailEl) emailEl.textContent = elements.customerEmail?.value || 'your email';
+      document.getElementById('success-order-id').textContent = response.orderId || 'N/A';
+      document.getElementById('success-email').textContent = elements.customerEmail?.value || 'your email';
     }
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   
   function handleError(error) {
-    const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
-    
-    alert(
-      'Submission Failed\n\n' +
-      errorMessage + '\n\n' +
-      'Please check your connection and try again. If the problem persists, contact support.'
-    );
+    alert('Submission Failed\n\n' + (error.message || 'An unexpected error occurred.') + '\n\nPlease try again or contact support.');
   }
   
   function setLoadingState(loading, text, subtext) {
     if (!elements.submitBtn) return;
-
+    
     elements.submitBtn.disabled = loading;
     
-    // Toggle loading class for CSS-based text swap
     if (loading) {
       elements.submitBtn.classList.add('loading');
     } else {
       elements.submitBtn.classList.remove('loading');
     }
-
-    if (elements.loadingOverlay) {
-      elements.loadingOverlay.hidden = !loading;
-    }
-
-    if (elements.loadingText && text) {
-      elements.loadingText.textContent = text;
-    }
-
-    if (elements.loadingSubtext && subtext) {
-      elements.loadingSubtext.textContent = subtext;
-    }
+    
+    if (elements.loadingOverlay) elements.loadingOverlay.hidden = !loading;
+    if (elements.loadingText && text) elements.loadingText.textContent = text;
+    if (elements.loadingSubtext && subtext) elements.loadingSubtext.textContent = subtext;
   }
 
   // ============================================================================
-  // UTILITY FUNCTIONS
+  // UTILITIES
   // ============================================================================
   
-  function showError(errorEl, message) {
-    if (errorEl) errorEl.textContent = message;
-  }
-  
-  function clearError(errorEl) {
-    if (errorEl) errorEl.textContent = '';
-  }
-  
+  function showError(el, msg) { if (el) el.textContent = msg; }
+  function clearError(el) { if (el) el.textContent = ''; }
   function clearAllErrors() {
     document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
     document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
   }
 
   // ============================================================================
-  // START APPLICATION
+  // START
   // ============================================================================
   
   if (document.readyState === 'loading') {

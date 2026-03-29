@@ -318,19 +318,24 @@ description: Securely upload your fashion specifications, fabric details, and hi
 
       <div class="form-field">
         <label class="field-label">
-          Design Image
+          Design Images
           <span class="required">*</span>
         </label>
         <div class="file-upload-wrapper">
           <input
             type="file"
             class="field-input field-file"
-            name="designImage"
+            name="designImages"
             accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+            multiple
+            data-max-files="10"
             required
           >
+          <div class="image-preview-container" hidden>
+            <!-- Dynamic image previews will be inserted here -->
+          </div>
         </div>
-        <span class="field-hint">Accepted formats: PNG, JPG, GIF, WebP, SVG. Max 50MB per file.</span>
+        <span class="field-hint">Upload up to 10 images per design. Accepted formats: PNG, JPG, GIF, WebP, SVG. Max 50MB total per design.</span>
         <span class="field-error file-error"></span>
       </div>
     </div>
