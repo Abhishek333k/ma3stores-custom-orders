@@ -30,12 +30,42 @@ description: Securely upload your fashion specifications, fabric details, and hi
     <!-- Portal Header Section -->
     <section class="portal-header">
       <h1>MA³ Store Custom Design Portal</h1>
-      
+
       <h2>Submit Your Production Specifications</h2>
-      
+
       <p class="intro-text">
         Welcome to the official <strong>MA³ Store</strong> custom apparel portal. Please provide your precise fabric preferences, sizing details, and upload your high-resolution design files below. Our production team will review your specifications and log your order directly into our secure system.
       </p>
+      
+      <!-- Quick Info Cards -->
+      <div class="info-cards">
+        <div class="info-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div>
+            <strong>50MB</strong> per file
+          </div>
+        </div>
+        <div class="info-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <div>
+            <strong>2-3 days</strong> processing
+          </div>
+        </div>
+        <div class="info-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <div>
+            <strong>100% Secure</strong> storage
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Order Status Gate Modal (Hidden by default) -->
@@ -129,7 +159,7 @@ description: Securely upload your fashion specifications, fabric details, and hi
                 pattern="^[+]?91[\s0-9]{10,14}$"
                 inputmode="tel"
               >
-              <span class="field-hint">Enter 10-digit Indian mobile number (e.g., +91 9876543210)</span>
+              <span class="field-hint">Format: +91 9876543210 (Indian mobile only)</span>
               <span class="field-error" id="mobile-error"></span>
             </div>
           </div>
@@ -172,7 +202,7 @@ description: Securely upload your fashion specifications, fabric details, and hi
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
-            <span><strong>Maximum file size: 50MB per file, 200MB total.</strong> High-resolution images are supported.</span>
+            <span><strong>Max 50MB per file</strong> • PNG, JPG, GIF, WebP, SVG</span>
           </div>
         </div>
 
