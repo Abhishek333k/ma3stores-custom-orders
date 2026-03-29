@@ -233,19 +233,21 @@
       
       // Generate preview for each file
       files.forEach((file, index) => {
-        generateImagePreview_(file, previewContainer, fileInput, index);
+        generateImagePreview_(file, previewContainer, fileInput);
       });
     }
     
     clearError(errorSpan);
   }
   
-  function generateImagePreview_(file, container, fileInput, index) {
+  function generateImagePreview_(file, container, fileInput) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const previewItem = document.createElement('div');
       previewItem.className = 'image-preview-item';
-      previewItem.dataset.fileIndex = index;
+      
+      // Store file reference directly on the element
+      previewItem.file = file;
       
       previewItem.innerHTML = `
         <img src="${e.target.result}" alt="${file.name}" class="image-preview-thumb">
@@ -272,13 +274,18 @@
   }
   
   function removeImageFromInput_(previewItem, fileInput, container) {
-    const fileIndex = parseInt(previewItem.dataset.fileIndex);
-    const files = Array.from(fileInput.files);
-    files.splice(fileIndex, 1);
+    // Get all preview items
+    const previews = Array.from(container.querySelectorAll('.image-preview-item'));
+    const index = previews.indexOf(previewItem);
     
-    // Create new FileList
+    if (index === -1) return;
+    
+    // Create new FileList without the removed file
+    const files = Array.from(fileInput.files);
+    files.splice(index, 1);
+    
     const dataTransfer = new DataTransfer();
-    files.forEach(file => dataTransfer.items.add(file));
+    files.forEach(f => dataTransfer.items.add(f));
     fileInput.files = dataTransfer.files;
     
     // Remove preview element
@@ -468,25 +475,23 @@
     }
 
     try {
-      // CORS bypass: Using text/plain to avoid OPTIONS preflight
+      // Use FormData to avoid CORS preflight
+      const formData = new FormData();
+      formData.append('action', 'getUploadUrls');
+      formData.append('orderId', currentOrderId);
+      formData.append('customerName', elements.customerName?.value.trim() || '');
+      formData.append('files', JSON.stringify(fileMetadata.map(f => ({
+        fileName: f.fileName,
+        mimeType: f.mimeType,
+        designIndex: f.designIndex,
+        designFolderName: f.designFolderName,
+        productType: f.productType
+      }))));
+
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        redirect: 'follow',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify({
-          action: 'getUploadUrls',
-          orderId: currentOrderId,
-          customerName: elements.customerName?.value.trim() || '',
-          files: fileMetadata.map(f => ({
-            fileName: f.fileName,
-            mimeType: f.mimeType,
-            designIndex: f.designIndex,
-            designFolderName: f.designFolderName,
-            productType: f.productType
-          }))
-        })
+        redirect: 'follow'
+        // NO headers - browser sets Content-Type with boundary for FormData
       });
 
       if (!response.ok) {
@@ -600,23 +605,21 @@
     }
 
     try {
-      // CORS bypass: Using text/plain to avoid OPTIONS preflight
+      // Use FormData to avoid CORS preflight
+      const formData = new FormData();
+      formData.append('action', 'logOrder');
+      formData.append('orderId', payload.orderId);
+      formData.append('customerName', payload.customerName);
+      formData.append('customerEmail', payload.customerEmail || '');
+      formData.append('mobileNumber', payload.mobileNumber);
+      formData.append('formattedSpecs', payload.formattedSpecs);
+      formData.append('folderUrl', payload.folderUrl);
+      formData.append('legalConsent', payload.legalConsent.toString());
+
       const response = await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        redirect: 'follow',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify({
-          action: 'logOrder',
-          orderId: payload.orderId,
-          customerName: payload.customerName,
-          customerEmail: payload.customerEmail,
-          mobileNumber: payload.mobileNumber,
-          formattedSpecs: payload.formattedSpecs,
-          folderUrl: payload.folderUrl,
-          legalConsent: payload.legalConsent
-        })
+        redirect: 'follow'
+        // NO headers - browser sets Content-Type with boundary for FormData
       });
 
       if (!response.ok) {

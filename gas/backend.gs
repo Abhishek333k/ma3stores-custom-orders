@@ -67,7 +67,23 @@ function doPost(e) {
   
   try {
     let data;
-    if (e.postData && e.postData.contents) {
+    
+    // Handle both FormData and JSON payloads
+    if (e.parameter && e.parameter.action) {
+      // FormData submission
+      data = {
+        action: e.parameter.action,
+        orderId: e.parameter.orderId,
+        customerName: e.parameter.customerName,
+        customerEmail: e.parameter.customerEmail,
+        mobileNumber: e.parameter.mobileNumber,
+        files: e.parameter.files ? JSON.parse(e.parameter.files) : [],
+        formattedSpecs: e.parameter.formattedSpecs,
+        folderUrl: e.parameter.folderUrl,
+        legalConsent: e.parameter.legalConsent === 'true'
+      };
+    } else if (e.postData && e.postData.contents) {
+      // JSON submission (fallback)
       data = JSON.parse(e.postData.contents);
     } else {
       throw new Error('No post data received');
