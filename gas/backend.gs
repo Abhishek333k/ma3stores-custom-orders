@@ -27,13 +27,15 @@
 
 /**
  * Folder where active order folders are created
+ * URL: https://drive.google.com/drive/folders/1Vd858k2IROkPfl_B6tIy9W_FlWgk3IUd
  */
-const ACTIVE_ORDERS_FOLDER_ID = '1LH5p6ZpsCy-dxNlNky_6yS0cpZU1CZyR';
+const ACTIVE_ORDERS_FOLDER_ID = '1Vd858k2IROkPfl_B6tIy9W_FlWgk3IUd';
 
 /**
  * Folder where completed orders are moved for archival
+ * URL: https://drive.google.com/drive/folders/1VCcMR4mRMcNFifzip_MYXtbdcRJGy7fA
  */
-const COMPLETED_FOLDER_ID = 'YOUR_COMPLETED_FOLDER_ID_HERE';
+const COMPLETED_FOLDER_ID = '1VCcMR4mRMcNFifzip_MYXtbdcRJGy7fA';
 
 /**
  * Google Spreadsheet ID for Orders database
