@@ -15,8 +15,8 @@
   // ============================================================================
   // CONFIGURATION
   // ============================================================================
-  
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwKi5hsux90xle87zSvEQXURDke3erz12cPebmtTBTAX6Lc9zu5NKK4jtDkdcQK_NkC/exec';
+
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxROj92INlwWlHUfHgXAnmpYevdAp3xHnmB6yWcjtwl5fuuZslN0hRAm8moNtxQ1yI/exec';
   const SUPPORT_EMAIL = 'myma3store@gmail.com';
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
   const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB total
