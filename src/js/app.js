@@ -24,7 +24,7 @@
    * Google Apps Script Web App URL
    * MA³ Store Custom Design Portal Backend - Production
    */
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxGI9FGV695hOGtVpRqZJJy_NTWkrQDRCELD2zDHRHZp9rn4i9HHutKbVoXgjjuDGBU/exec';
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwKi5hsux90xle87zSvEQXURDke3erz12cPebmtTBTAX6Lc9zu5NKK4jtDkdcQK_NkC/exec';
   
   /**
    * Support email address
