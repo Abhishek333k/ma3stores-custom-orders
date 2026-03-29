@@ -456,25 +456,27 @@
   }
   
   async function requestUploadUrls_(fileMetadata) {
-    if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
-      console.log('Development mode - simulating upload URLs');
-      await sleep(1000);
-      return {
-        success: true,
-        orderId: 'ORD-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-DEV',
-        folderUrl: '#',
-        uploadUrls: fileMetadata.map((f, i) => ({
-          uploadUrl: 'https://mock-upload-url.example.com/' + i,
-          index: i,
-          fileName: f.fileName,
-          mimeType: f.mimeType,
-          designIndex: f.designIndex,
-          designFolderName: f.designFolderName
-        }))
-      };
-    }
+    return new Promise((resolve, reject) => {
+      if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+        console.log('Development mode - simulating upload URLs');
+        setTimeout(() => {
+          resolve({
+            success: true,
+            orderId: 'ORD-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-DEV',
+            folderUrl: '#',
+            uploadUrls: fileMetadata.map((f, i) => ({
+              uploadUrl: 'https://mock-upload-url.example.com/' + i,
+              index: i,
+              fileName: f.fileName,
+              mimeType: f.mimeType,
+              designIndex: f.designIndex,
+              designFolderName: f.designFolderName
+            }))
+          });
+        }, 1000);
+        return;
+      }
 
-    try {
       // Use FormData to avoid CORS preflight
       const formData = new FormData();
       formData.append('action', 'getUploadUrls');
@@ -488,41 +490,52 @@
         productType: f.productType
       }))));
 
-      const response = await fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        redirect: 'follow'
-        // NO headers - browser sets Content-Type with boundary for FormData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server responded with status ${response.status}: ${errorText.substring(0, 200)}`);
-      }
-
-      const data = await response.json();
-
-      if (data.status !== 'success') {
-        throw new Error(data.message || 'Failed to get upload URLs');
-      }
-
-      return {
-        success: true,
-        orderId: data.orderId,
-        folderUrl: data.folderUrl,
-        uploadUrls: data.uploadUrls.map((url, i) => ({
-          uploadUrl: url,
-          index: i,
-          fileName: fileMetadata[i].fileName,
-          mimeType: fileMetadata[i].mimeType,
-          designIndex: fileMetadata[i].designIndex,
-          designFolderName: fileMetadata[i].designFolderName
-        }))
+      // Use XMLHttpRequest for better GAS compatibility
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', GAS_WEB_APP_URL, true);
+      
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.status === 'success') {
+              resolve({
+                success: true,
+                orderId: data.orderId,
+                folderUrl: data.folderUrl,
+                uploadUrls: data.uploadUrls.map((url, i) => ({
+                  uploadUrl: url,
+                  index: i,
+                  fileName: fileMetadata[i].fileName,
+                  mimeType: fileMetadata[i].mimeType,
+                  designIndex: fileMetadata[i].designIndex,
+                  designFolderName: fileMetadata[i].designFolderName
+                }))
+              });
+            } else {
+              reject(new Error(data.message || 'Failed to get upload URLs'));
+            }
+          } catch (e) {
+            reject(new Error('Invalid response from server'));
+          }
+        } else {
+          reject(new Error(`Server responded with status ${xhr.status}`));
+        }
       };
-
-    } catch (error) {
-      console.error('Failed to request upload URLs:', error);
-      throw error;
-    }
+      
+      xhr.onerror = function() {
+        reject(new Error('Network error - please check your connection'));
+      };
+      
+      xhr.ontimeout = function() {
+        reject(new Error('Request timeout - please try again'));
+      };
+      
+      xhr.timeout = 60000; // 60 second timeout
+      
+      // Send FormData (no Content-Type header - browser sets it automatically)
+      xhr.send(formData);
+    });
   }
   
   async function uploadFilesToDrive_(fileMetadata, uploadUrls) {
@@ -598,13 +611,15 @@
   }
   
   async function logOrder_(payload) {
-    if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
-      console.log('Development mode - simulating order logging');
-      await sleep(500);
-      return { success: true, orderId: payload.orderId, sheetRow: 2 };
-    }
+    return new Promise((resolve, reject) => {
+      if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+        console.log('Development mode - simulating order logging');
+        setTimeout(() => {
+          resolve({ success: true, orderId: payload.orderId, sheetRow: 2 });
+        }, 500);
+        return;
+      }
 
-    try {
       // Use FormData to avoid CORS preflight
       const formData = new FormData();
       formData.append('action', 'logOrder');
@@ -616,28 +631,40 @@
       formData.append('folderUrl', payload.folderUrl);
       formData.append('legalConsent', payload.legalConsent.toString());
 
-      const response = await fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        redirect: 'follow'
-        // NO headers - browser sets Content-Type with boundary for FormData
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.status !== 'success') {
-        throw new Error(data.message || 'Failed to log order');
-      }
-
-      return data;
-
-    } catch (error) {
-      console.error('Failed to log order:', error);
-      throw error;
-    }
+      // Use XMLHttpRequest for better GAS compatibility
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', GAS_WEB_APP_URL, true);
+      
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.status === 'success') {
+              resolve(data);
+            } else {
+              reject(new Error(data.message || 'Failed to log order'));
+            }
+          } catch (e) {
+            reject(new Error('Invalid response from server'));
+          }
+        } else {
+          reject(new Error(`Server responded with status ${xhr.status}`));
+        }
+      };
+      
+      xhr.onerror = function() {
+        reject(new Error('Network error - please check your connection'));
+      };
+      
+      xhr.ontimeout = function() {
+        reject(new Error('Request timeout - please try again'));
+      };
+      
+      xhr.timeout = 60000; // 60 second timeout
+      
+      // Send FormData (no Content-Type header - browser sets it automatically)
+      xhr.send(formData);
+    });
   }
   
   function sleep(ms) {
