@@ -48,10 +48,13 @@ const SPREADSHEET_ID = '14RAOoBhYoFzZirbU9zW-qIAYLV8mM9OiLTT-iCdfKGQ';
 
 function doOptions(e) {
   return ContentService.createTextOutput("")
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "POST, OPTIONS")
-    .setHeader("Access-Control-Allow-Headers", "Content-Type");
+    .setMimeType(ContentService.MimeType.TEXT)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      'Access-Control-Max-Age': '3600'
+    });
 }
 
 // =============================================================================
@@ -61,27 +64,30 @@ function doOptions(e) {
 function doPost(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
-  output.setHeader("Access-Control-Allow-Origin", "*");
   
   try {
-    const data = JSON.parse(e.postData.contents);
-    
-    // Route to appropriate action
+    let data;
+    if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else {
+      throw new Error('No post data received');
+    }
+
     if (data.action === 'getUploadUrls') {
       return handleGetUploadUrls_(data, output);
     }
-    
     if (data.action === 'logOrder') {
       return handleLogOrder_(data, output);
     }
-    
+
     throw new Error('Unknown action: ' + (data.action || 'none'));
-    
+
   } catch (error) {
     output.setContent(JSON.stringify({ 
       status: 'error', 
       message: error.toString() 
     }));
+    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
     return output;
   }
 }
@@ -172,24 +178,27 @@ function handleGetUploadUrls_(data, output) {
       }
     }
 
-    const output = ContentService.createTextOutput(JSON.stringify({
+    const responseData = {
       status: 'success',
       uploadUrls: uploadUrls,
       folderUrl: orderFolderUrl,
       orderId: data.orderId,
       message: `Created ${Object.keys(designFolders).length} design folders`
-    }));
+    };
+    
+    const output = ContentService.createTextOutput(JSON.stringify(responseData));
     output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
+    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
     return output;
 
   } catch (error) {
-    const output = ContentService.createTextOutput(JSON.stringify({
+    const errorData = {
       status: 'error',
       message: 'getUploadUrls: ' + error.toString()
-    }));
+    };
+    const output = ContentService.createTextOutput(JSON.stringify(errorData));
     output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
+    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
     return output;
   }
 }
@@ -227,22 +236,25 @@ function handleLogOrder_(data, output) {
       data.legalConsent ? "Granted" : "Failed"  // Legal Consent
     ]);
 
-    const output = ContentService.createTextOutput(JSON.stringify({
+    const responseData = {
       status: 'success',
       message: 'Order Logged Successfully',
       orderId: data.orderId
-    }));
+    };
+    
+    const output = ContentService.createTextOutput(JSON.stringify(responseData));
     output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
+    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
     return output;
 
   } catch (error) {
-    const output = ContentService.createTextOutput(JSON.stringify({
+    const errorData = {
       status: 'error',
       message: 'logOrder: ' + error.toString()
-    }));
+    };
+    const output = ContentService.createTextOutput(JSON.stringify(errorData));
     output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
+    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
     return output;
   }
 }
