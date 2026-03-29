@@ -73,7 +73,7 @@
     elements.capacityModal?.querySelector('.modal-backdrop')?.addEventListener('click', hideCapacityModal);
     elements.addDesignBtn?.addEventListener('click', addDesignBlock);
     elements.designForm?.addEventListener('submit', handleFormSubmit);
-    document.addEventListener('change', handleFileInputChange);
+    // File input listeners are added individually in addDesignBlock()
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && elements.capacityModal && !elements.capacityModal.hidden) {
         hideCapacityModal();
@@ -188,67 +188,76 @@
   // ============================================================================
   // FILE HANDLING - MULTIPLE IMAGES WITH PREVIEWS
   // ============================================================================
-  
+
   function handleFileInputChange(e) {
     const fileInput = e.target;
     if (!fileInput.classList.contains('field-file')) return;
-    
+
     const files = Array.from(fileInput.files);
     if (files.length === 0) return;
-    
+
     const designBlock = fileInput.closest('.design-block');
     const previewContainer = designBlock?.querySelector('.image-preview-container');
     const errorSpan = designBlock?.querySelector('.file-error');
-    
+
     // Validate file count
     if (files.length > MAX_FILES_PER_DESIGN) {
       showError(errorSpan, `Maximum ${MAX_FILES_PER_DESIGN} images allowed per design`);
       fileInput.value = '';
-      if (previewContainer) previewContainer.hidden = true;
+      if (previewContainer) {
+        previewContainer.hidden = true;
+        previewContainer.innerHTML = '';
+      }
       return;
     }
-    
+
     // Validate each file
     const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
     for (const file of files) {
       if (!validTypes.includes(file.type)) {
         showError(errorSpan, `Invalid file type: ${file.name}. Please upload images only (PNG, JPG, GIF, WebP, SVG)`);
         fileInput.value = '';
-        if (previewContainer) previewContainer.hidden = true;
+        if (previewContainer) {
+          previewContainer.hidden = true;
+          previewContainer.innerHTML = '';
+        }
         return;
       }
-      
+
       if (file.size > MAX_FILE_SIZE) {
         showError(errorSpan, `File "${file.name}" exceeds ${formatFileSize(MAX_FILE_SIZE)} limit`);
         fileInput.value = '';
-        if (previewContainer) previewContainer.hidden = true;
+        if (previewContainer) {
+          previewContainer.hidden = true;
+          previewContainer.innerHTML = '';
+        }
         return;
       }
     }
-    
-    // Clear previous previews and generate new ones
+
+    // Clear previous previews completely and generate new ones
     if (previewContainer) {
       previewContainer.innerHTML = '';
       previewContainer.hidden = false;
-      
-      // Generate preview for each file
-      files.forEach((file, index) => {
+
+      // Generate preview for each file (only once)
+      files.forEach((file) => {
         generateImagePreview_(file, previewContainer, fileInput);
       });
     }
-    
+
     clearError(errorSpan);
   }
-  
+
   function generateImagePreview_(file, container, fileInput) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const previewItem = document.createElement('div');
       previewItem.className = 'image-preview-item';
-      
+
       // Store file reference directly on the element
       previewItem.file = file;
-      
+
       previewItem.innerHTML = `
         <img src="${e.target.result}" alt="${file.name}" class="image-preview-thumb">
         <div class="image-preview-info">
@@ -261,36 +270,36 @@
           </svg>
         </button>
       `;
-      
+
       // Remove button handler
       const removeBtn = previewItem.querySelector('.image-preview-remove');
       removeBtn.addEventListener('click', function() {
         removeImageFromInput_(previewItem, fileInput, container);
       });
-      
+
       container.appendChild(previewItem);
     };
     reader.readAsDataURL(file);
   }
-  
+
   function removeImageFromInput_(previewItem, fileInput, container) {
     // Get all preview items
     const previews = Array.from(container.querySelectorAll('.image-preview-item'));
     const index = previews.indexOf(previewItem);
-    
+
     if (index === -1) return;
-    
+
     // Create new FileList without the removed file
     const files = Array.from(fileInput.files);
     files.splice(index, 1);
-    
+
     const dataTransfer = new DataTransfer();
     files.forEach(f => dataTransfer.items.add(f));
     fileInput.files = dataTransfer.files;
-    
+
     // Remove preview element
     previewItem.remove();
-    
+
     // Hide container if no files left
     if (files.length === 0) {
       container.hidden = true;
@@ -491,12 +500,18 @@
         }))
       };
 
+      console.log('Sending to GAS:', GAS_WEB_APP_URL);
+      console.log('Payload:', payload);
+
       // Use XMLHttpRequest with JSON body and text/plain header
       const xhr = new XMLHttpRequest();
       xhr.open('POST', GAS_WEB_APP_URL, true);
       xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
       
       xhr.onload = function() {
+        console.log('XHR response status:', xhr.status);
+        console.log('XHR response:', xhr.responseText);
+        
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const data = JSON.parse(xhr.responseText);
@@ -518,6 +533,7 @@
               reject(new Error(data.message || 'Failed to get upload URLs'));
             }
           } catch (e) {
+            console.error('Parse error:', e);
             reject(new Error('Invalid response from server'));
           }
         } else {
@@ -526,16 +542,19 @@
       };
       
       xhr.onerror = function() {
+        console.error('XHR network error');
         reject(new Error('Network error - please check your connection'));
       };
       
       xhr.ontimeout = function() {
+        console.error('XHR timeout');
         reject(new Error('Request timeout - please try again'));
       };
       
       xhr.timeout = 60000; // 60 second timeout
       
       // Send JSON string (GAS parses this correctly)
+      console.log('Sending JSON:', JSON.stringify(payload));
       xhr.send(JSON.stringify(payload));
     });
   }
