@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <!-- Primary Meta Tags -->
+  <title>{{ title }} | MA³ Store</title>
+  <meta name="title" content="{{ title }} | MA³ Store">
+  <meta name="description" content="{{ description or 'Securely upload your fashion specifications, fabric details, and high-resolution custom designs directly to the MA³ Store production team.' }}">
+  <meta name="keywords" content="MA³ Store, custom fashion design, apparel production, submit clothing designs, custom printing specifications">
+  <meta name="author" content="MA³ Store">
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://custom.orders.ma3stores.com/">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="/ma3logo.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="/ma3logo.ico" type="image/x-icon">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://custom.orders.ma3stores.com/">
+  <meta property="og:title" content="MA³ Store Custom Design Portal">
+  <meta property="og:description" content="{{ description or 'Securely upload your fashion specifications and custom designs directly to the MA³ Store production team.' }}">
+  <meta property="og:site_name" content="MA³ Store">
+  <meta property="og:image" content="https://custom.orders.ma3stores.com/ma3logo.png">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://custom.orders.ma3stores.com/">
+  <meta name="twitter:title" content="MA³ Store Custom Design Portal">
+  <meta name="twitter:description" content="{{ description or 'Securely upload your fashion specifications and custom designs directly to the MA³ Store production team.' }}">
+  <meta name="twitter:image" content="https://custom.orders.ma3stores.com/ma3logo.png">
+  
+  <!-- Robots -->
+  <meta name="robots" content="index, follow">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <!-- Preload critical assets -->
+  <link rel="preload" href="/css/style.css" as="style">
+  <link rel="preload" href="/js/app.js" as="script">
+</head>
+<body>
+  {{ content | safe }}
+  
+  <!-- Scripts -->
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

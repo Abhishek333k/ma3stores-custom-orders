@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Build output
+_site/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Package lock files (optional - remove if you want to commit)
+# package-lock.json
+
+# Google Apps Script local copies (if using clasp)
+.claspignore
+appsscript.json
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js

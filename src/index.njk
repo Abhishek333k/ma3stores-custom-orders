@@ -1,0 +1,338 @@
+---
+layout: base.njk
+title: Submit Custom Design Orders
+description: Securely upload your fashion specifications, fabric details, and high-resolution custom designs directly to the MA³ Store production team.
+---
+
+<!-- =======================================================================
+     MA³ STORE CUSTOM DESIGN SUBMISSION PORTAL
+     Official production specification portal for custom apparel orders
+     ======================================================================= -->
+
+<div class="app-container">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <img src="/ma3logo.png" alt="MA³ Store Logo" class="logo-image">
+        <span class="logo-text">MA³ Store</span>
+      </div>
+      <nav class="header-nav">
+        <a href="#submission-form-section" class="nav-link">Submit Design</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Portal Header Section -->
+    <section class="portal-header">
+      <h1>MA³ Store Custom Design Portal</h1>
+      
+      <h2>Submit Your Production Specifications</h2>
+      
+      <p class="intro-text">
+        Welcome to the official <strong>MA³ Store</strong> custom apparel portal. Please provide your precise fabric preferences, sizing details, and upload your high-resolution design files below. Our production team will review your specifications and log your order directly into our secure system.
+      </p>
+    </section>
+
+    <!-- Order Status Gate Modal (Hidden by default) -->
+    <div id="capacity-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+        </div>
+        <h2 id="modal-title" class="modal-title">Currently at Capacity</h2>
+        <p class="modal-message">
+          We are currently at capacity and not accepting new custom orders right now. 
+          Please check back later.
+        </p>
+        <button class="modal-close" id="modal-close-btn" type="button">
+          Understand
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading-overlay" class="loading-overlay" hidden>
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Processing your submission...</p>
+      <p class="loading-subtext">This may take a moment for large files</p>
+    </div>
+
+    <!-- Submission Form -->
+    <section id="submission-form-section" class="form-section">
+      <form id="design-form" class="design-form" novalidate>
+
+        <!-- Customer Information -->
+        <div class="form-group-section">
+          <h2 class="section-title">
+            <span class="section-number">1</span>
+            Your Contact Information
+          </h2>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="customer-name" class="field-label">
+                Full Name
+                <span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="customer-name"
+                name="customerName"
+                class="field-input"
+                placeholder="John Doe"
+                required
+                autocomplete="name"
+              >
+              <span class="field-error" id="name-error"></span>
+            </div>
+
+            <div class="form-field">
+              <label for="customer-email" class="field-label">
+                Email Address
+                <span class="optional">(Optional)</span>
+              </label>
+              <input
+                type="email"
+                id="customer-email"
+                name="email"
+                class="field-input"
+                placeholder="john@example.com"
+                autocomplete="email"
+              >
+              <span class="field-error" id="email-error"></span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="customer-mobile" class="field-label">
+                Mobile Number
+                <span class="required">*</span>
+              </label>
+              <input
+                type="tel"
+                id="customer-mobile"
+                name="mobileNumber"
+                class="field-input"
+                placeholder="+91 98765 43210"
+                required
+                autocomplete="tel"
+                pattern="^[+]?91[0-9]{10}$"
+                inputmode="tel"
+              >
+              <span class="field-hint">Enter 10-digit Indian mobile number (e.g., +91 9876543210)</span>
+              <span class="field-error" id="mobile-error"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Sub-Designs Section -->
+        <div class="form-group-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-number">2</span>
+              Your Design Specifications
+            </h2>
+            <button
+              type="button"
+              id="add-design-btn"
+              class="btn-add-design"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="11"/>
+                <path d="M12 8v8M8 12h8"/>
+              </svg>
+              Add Another Design
+            </button>
+          </div>
+
+          <p class="section-description">
+            Add one or more designs to your order. Each design can include a product type, 
+            specifications, and an image file.
+          </p>
+
+          <!-- Sub-Designs Container -->
+          <div id="sub-designs-container" class="sub-designs-container">
+            <!-- Design blocks will be dynamically added here -->
+          </div>
+
+          <!-- File Size Info -->
+          <div class="file-size-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span><strong>Maximum file size: 50MB per file, 200MB total.</strong> High-resolution images are supported.</span>
+          </div>
+        </div>
+
+        <!-- Legal Consent -->
+        <div class="form-group-section">
+          <h2 class="section-title">
+            <span class="section-number">3</span>
+            Legal Confirmation
+          </h2>
+
+          <div class="consent-wrapper">
+            <label class="consent-checkbox">
+              <input
+                type="checkbox"
+                id="legal-consent"
+                name="legalConsent"
+                required
+              >
+              <span class="checkbox-custom"></span>
+              <span class="consent-text">
+                <strong>IP Declaration:</strong> I confirm I own the commercial rights to these designs 
+                or have obtained proper licensing. I understand that submitting designs I do not have 
+                rights to may result in legal action.
+                <span class="required">*</span>
+              </span>
+            </label>
+            <span class="field-error" id="consent-error"></span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+          <button
+            type="submit"
+            id="submit-btn"
+            class="btn-submit"
+            data-loading-text="Submitting..."
+          >
+            <span class="btn-text">Submit Design Order</span>
+            <span class="btn-loading" hidden>
+              <span class="btn-spinner"></span>
+              Submitting...
+            </span>
+          </button>
+          <p class="submit-note">
+            By submitting, you agree to our <a href="https://ma3stores.com/policies/terms-of-service" target="_blank">Terms of Service</a> and <a href="https://ma3stores.com/policies/privacy-policy" target="_blank">Privacy Policy</a>.
+          </p>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- Success Message (Hidden by default) -->
+    <section id="success-section" class="success-section" hidden>
+      <div class="success-content">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h2 class="success-title">Submission Received!</h2>
+        <p class="success-message">
+          Thank you for your design submission. We've received your order and will review it shortly.
+        </p>
+        <div class="success-details">
+          <p><strong>Order ID:</strong> <span id="success-order-id">-</span></p>
+          <p><strong>Confirmation:</strong> A confirmation email has been sent to <span id="success-email">-</span></p>
+        </div>
+        <a href="/" class="btn-primary">Submit Another Order</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <p class="support-info">
+        <strong>Support & Inquiries:</strong> 
+        <a href="mailto:myma3store@gmail.com">myma3store@gmail.com</a>
+      </p>
+      <div class="footer-links">
+        <a href="https://ma3stores.com/policies/terms-of-service" target="_blank" rel="noopener">Terms of Service</a>
+        <a href="https://ma3stores.com/policies/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="https://ma3stores.com/policies/intellectual-property" target="_blank" rel="noopener">IP Policy</a>
+      </div>
+      <p class="copyright">© MA³ Store. All rights reserved. Operating on secure infrastructure.</p>
+    </div>
+  </footer>
+
+</div>
+
+<!-- =======================================================================
+     DESIGN BLOCK TEMPLATE (Used by JavaScript for cloning)
+     ======================================================================= -->
+<template id="design-block-template">
+  <div class="design-block" data-design-index="0">
+    <div class="design-block-header">
+      <h3 class="design-block-title">
+        <span class="design-number">Design 1</span>
+      </h3>
+      <button type="button" class="btn-remove-design" aria-label="Remove this design">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="design-block-content">
+      <div class="form-field">
+        <label class="field-label">
+          Product Type
+          <span class="required">*</span>
+        </label>
+        <select class="field-input field-select" name="productType" required>
+          <option value="">Select a product type...</option>
+          <option value="T-Shirt">T-Shirt</option>
+          <option value="Hoodie">Hoodie</option>
+          <option value="Sweatshirt">Sweatshirt</option>
+          <option value="Tank Top">Tank Top</option>
+          <option value="Long Sleeve">Long Sleeve</option>
+          <option value="Jacket">Jacket</option>
+          <option value="Pants">Pants</option>
+          <option value="Shorts">Shorts</option>
+          <option value="Cap/Hat">Cap/Hat</option>
+          <option value="Tote Bag">Tote Bag</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">
+          Specifications
+          <span class="required">*</span>
+        </label>
+        <textarea
+          class="field-input field-textarea"
+          name="specs"
+          rows="3"
+          placeholder="Describe color, size, material, placement, and any special instructions..."
+          required
+        ></textarea>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">
+          Design Image
+          <span class="required">*</span>
+        </label>
+        <div class="file-upload-wrapper">
+          <input
+            type="file"
+            class="field-input field-file"
+            name="designImage"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+            required
+          >
+        </div>
+        <span class="field-hint">Accepted formats: PNG, JPG, GIF, WebP, SVG. Max 50MB per file.</span>
+        <span class="field-error file-error"></span>
+      </div>
+    </div>
+  </div>
+</template>
