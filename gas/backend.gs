@@ -58,6 +58,41 @@ function doOptions(e) {
 }
 
 // =============================================================================
+// HTTP GET HANDLER - Order Status Gate
+// =============================================================================
+
+/**
+ * Handles GET requests to check if orders are being accepted
+ */
+function doGet(e) {
+  try {
+    const acceptingOrders = isAcceptingOrders_();
+    
+    const output = ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      acceptingOrders: acceptingOrders,
+      timestamp: new Date().toISOString()
+    }));
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader("Access-Control-Allow-Origin", "*");
+    return output;
+    
+  } catch (error) {
+    Logger.log('GET Error: ' + error.toString());
+    
+    const output = ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      acceptingOrders: true, // Fail open
+      error: 'Could not verify order status',
+      timestamp: new Date().toISOString()
+    }));
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setHeader("Access-Control-Allow-Origin", "*");
+    return output;
+  }
+}
+
+// =============================================================================
 // HTTP POST HANDLER
 // =============================================================================
 
