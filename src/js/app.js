@@ -460,11 +460,12 @@
       };
       
       const logResponse = await logOrder_(logOrderPayload);
-      
-      if (!logResponse.success) {
-        throw new Error(logResponse.error || 'Failed to log order');
+
+      // Backend returns {status: 'success'} not {success: true}
+      if (logResponse.status !== 'success') {
+        throw new Error(logResponse.message || 'Failed to log order');
       }
-      
+
       // SUCCESS
       handleSuccess({
         orderId: currentOrderId,
