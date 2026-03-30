@@ -48,13 +48,7 @@ const SPREADSHEET_ID = '14RAOoBhYoFzZirbU9zW-qIAYLV8mM9OiLTT-iCdfKGQ';
 
 function doOptions(e) {
   return ContentService.createTextOutput("")
-    .setMimeType(ContentService.MimeType.TEXT)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-      'Access-Control-Max-Age': '3600'
-    });
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 // =============================================================================
@@ -63,32 +57,28 @@ function doOptions(e) {
 
 /**
  * Handles GET requests to check if orders are being accepted
+ * Note: ContentService automatically handles CORS for all responses
  */
 function doGet(e) {
   try {
     const acceptingOrders = isAcceptingOrders_();
     
-    const output = ContentService.createTextOutput(JSON.stringify({
+    return ContentService.createTextOutput(JSON.stringify({
       success: true,
       acceptingOrders: acceptingOrders,
       timestamp: new Date().toISOString()
-    }));
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
-    return output;
+    })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
     Logger.log('GET Error: ' + error.toString());
     
-    const output = ContentService.createTextOutput(JSON.stringify({
+    // Fail open - allow orders if config check fails
+    return ContentService.createTextOutput(JSON.stringify({
       success: false,
-      acceptingOrders: true, // Fail open
+      acceptingOrders: true,
       error: 'Could not verify order status',
       timestamp: new Date().toISOString()
-    }));
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
-    return output;
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -97,12 +87,9 @@ function doGet(e) {
 // =============================================================================
 
 function doPost(e) {
-  const output = ContentService.createTextOutput();
-  output.setMimeType(ContentService.MimeType.JSON);
-  
   try {
     let data;
-    
+
     // Handle both FormData and JSON payloads
     if (e.parameter && e.parameter.action) {
       // FormData submission
@@ -125,21 +112,19 @@ function doPost(e) {
     }
 
     if (data.action === 'getUploadUrls') {
-      return handleGetUploadUrls_(data, output);
+      return handleGetUploadUrls_(data);
     }
     if (data.action === 'logOrder') {
-      return handleLogOrder_(data, output);
+      return handleLogOrder_(data);
     }
 
     throw new Error('Unknown action: ' + (data.action || 'none'));
 
   } catch (error) {
-    output.setContent(JSON.stringify({ 
-      status: 'error', 
-      message: error.toString() 
-    }));
-    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
-    return output;
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -147,7 +132,7 @@ function doPost(e) {
 // ACTION A: GET UPLOAD URLS
 // =============================================================================
 
-function handleGetUploadUrls_(data, output) {
+function handleGetUploadUrls_(data) {
   try {
     // Validate required fields
     if (!data.customerName || !data.files || !Array.isArray(data.files)) {
@@ -241,23 +226,15 @@ function handleGetUploadUrls_(data, output) {
       orderId: data.orderId,
       message: `Created ${Object.keys(designFolders).length} design folders, uploaded ${uploadedFiles.length} files`
     };
-    
-    output.setContent(JSON.stringify(responseData));
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
-    output.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    output.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    return output;
+
+    return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
     const errorData = {
       status: 'error',
       message: 'getUploadUrls: ' + error.toString()
     };
-    const output = ContentService.createTextOutput(JSON.stringify(errorData));
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeader("Access-Control-Allow-Origin", "*");
-    return output;
+    return ContentService.createTextOutput(JSON.stringify(errorData)).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -265,7 +242,7 @@ function handleGetUploadUrls_(data, output) {
 // ACTION B: LOG ORDER
 // =============================================================================
 
-function handleLogOrder_(data, output) {
+function handleLogOrder_(data) {
   try {
     // Validate required fields
     if (!data.orderId || !data.customerName || !data.mobileNumber) {
@@ -294,26 +271,17 @@ function handleLogOrder_(data, output) {
       data.legalConsent ? "Granted" : "Failed"  // Legal Consent
     ]);
 
-    const responseData = {
+    return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       message: 'Order Logged Successfully',
       orderId: data.orderId
-    };
-    
-    const output = ContentService.createTextOutput(JSON.stringify(responseData));
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
-    return output;
+    })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
-    const errorData = {
+    return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: 'logOrder: ' + error.toString()
-    };
-    const output = ContentService.createTextOutput(JSON.stringify(errorData));
-    output.setMimeType(ContentService.MimeType.JSON);
-    output.setHeaders({ 'Access-Control-Allow-Origin': '*' });
-    return output;
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
