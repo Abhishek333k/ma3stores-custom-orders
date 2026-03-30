@@ -764,6 +764,25 @@ body {
   box-shadow: var(--shadow-md);
   border: none;
   cursor: pointer;
+  position: relative;
+  min-height: 56px;
+}
+
+.btn-submit .btn-text {
+  display: inline;
+}
+
+.btn-submit .btn-loading {
+  display: none;
+}
+
+/* Loading state - hide text, show spinner */
+.btn-submit.loading .btn-text {
+  display: none;
+}
+
+.btn-submit.loading .btn-loading {
+  display: inline-flex;
 }
 
 .btn-submit:hover:not(:disabled):not(.loading) {
