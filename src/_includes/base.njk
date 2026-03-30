@@ -38,16 +38,16 @@
   <meta name="robots" content="index, follow">
   
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v={% buildTime %}">
   
   <!-- Preload critical assets -->
-  <link rel="preload" href="/css/style.css" as="style">
-  <link rel="preload" href="/js/app.js" as="script">
+  <link rel="preload" href="/css/style.css?v={% buildTime %}" as="style">
+  <link rel="preload" href="/js/app.js?v={% buildTime %}" as="script">
 </head>
 <body>
   {{ content | safe }}
   
   <!-- Scripts -->
-  <script src="/js/app.js" defer></script>
+  <script src="/js/app.js?v={% buildTime %}" defer></script>
 </body>
 </html>
