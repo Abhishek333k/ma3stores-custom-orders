@@ -294,82 +294,82 @@ description: Securely upload your fashion specifications, fabric details, and hi
     </div>
   </footer>
 
-</div>
-
-<!-- =======================================================================
-     DESIGN BLOCK TEMPLATE (Used by JavaScript for cloning)
-     ======================================================================= -->
-<template id="design-block-template">
-  <div class="design-block" data-design-index="0">
-    <div class="design-block-header">
-      <h3 class="design-block-title">
-        <span class="design-number">Design 1</span>
-      </h3>
-      <button type="button" class="btn-remove-design" aria-label="Remove this design">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-
-    <div class="design-block-content">
-      <div class="form-field">
-        <label class="field-label">
-          Product Type
-          <span class="required">*</span>
-        </label>
-        <select class="field-input field-select" name="productType" required>
-          <option value="">Select a product type...</option>
-          <option value="T-Shirt">T-Shirt</option>
-          <option value="Hoodie">Hoodie</option>
-          <option value="Sweatshirt">Sweatshirt</option>
-          <option value="Tank Top">Tank Top</option>
-          <option value="Long Sleeve">Long Sleeve</option>
-          <option value="Jacket">Jacket</option>
-          <option value="Pants">Pants</option>
-          <option value="Shorts">Shorts</option>
-          <option value="Cap/Hat">Cap/Hat</option>
-          <option value="Tote Bag">Tote Bag</option>
-          <option value="Other">Other</option>
-        </select>
+  <!-- =======================================================================
+       DESIGN BLOCK TEMPLATE (Used by JavaScript for cloning)
+       ======================================================================= -->
+  <template id="design-block-template">
+    <div class="design-block" data-design-index="0">
+      <div class="design-block-header">
+        <h3 class="design-block-title">
+          <span class="design-number">Design 1</span>
+        </h3>
+        <button type="button" class="btn-remove-design" aria-label="Remove this design">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
 
-      <div class="form-field">
-        <label class="field-label">
-          Specifications
-          <span class="required">*</span>
-        </label>
-        <textarea
-          class="field-input field-textarea"
-          name="specs"
-          rows="3"
-          placeholder="Describe color, size, material, placement, and any special instructions..."
-          required
-        ></textarea>
-      </div>
-
-      <div class="form-field">
-        <label class="field-label">
-          Design Images
-          <span class="required">*</span>
-        </label>
-        <div class="file-upload-wrapper">
-          <input
-            type="file"
-            class="field-input field-file"
-            name="designImages"
-            accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
-            multiple
-            data-max-files="10"
-            required
-          >
-          <div class="image-preview-container" hidden>
-            <!-- Dynamic image previews will be inserted here -->
-          </div>
+      <div class="design-block-content">
+        <div class="form-field">
+          <label class="field-label">
+            Product Type
+            <span class="required">*</span>
+          </label>
+          <select class="field-input field-select" name="productType" required>
+            <option value="">Select a product type...</option>
+            <option value="T-Shirt">T-Shirt</option>
+            <option value="Hoodie">Hoodie</option>
+            <option value="Sweatshirt">Sweatshirt</option>
+            <option value="Tank Top">Tank Top</option>
+            <option value="Long Sleeve">Long Sleeve</option>
+            <option value="Jacket">Jacket</option>
+            <option value="Pants">Pants</option>
+            <option value="Shorts">Shorts</option>
+            <option value="Cap/Hat">Cap/Hat</option>
+            <option value="Tote Bag">Tote Bag</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
-        <span class="field-hint">Upload up to 10 images per design. Accepted formats: PNG, JPG, GIF, WebP, SVG. Max 50MB total per design.</span>
-        <span class="field-error file-error"></span>
+
+        <div class="form-field">
+          <label class="field-label">
+            Specifications
+            <span class="required">*</span>
+          </label>
+          <textarea
+            class="field-input field-textarea"
+            name="specs"
+            rows="3"
+            placeholder="Describe color, size, material, placement, and any special instructions..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">
+            Design Images
+            <span class="required">*</span>
+          </label>
+          <div class="file-upload-wrapper">
+            <input
+              type="file"
+              class="field-input field-file"
+              name="designImages"
+              accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+              multiple
+              data-max-files="10"
+              required
+            >
+            <div class="image-preview-container" hidden>
+              <!-- Dynamic image previews will be inserted here -->
+            </div>
+          </div>
+          <span class="field-hint">Upload up to 10 images per design. Accepted formats: PNG, JPG, GIF, WebP, SVG.</span>
+          <span class="field-error file-error"></span>
+        </div>
       </div>
     </div>
-  </div>
-</template>
+  </template>
+
+</div>
