@@ -417,3 +417,47 @@ function testCleanup() {
   Logger.log('Running test cleanup (dry run)...');
   nightlyArchiveCleanup();
 }
+
+
+// =============================================================================
+// EVENT LISTENERS (SHEET AUTOMATION)
+// =============================================================================
+
+/**
+ * Built-in trigger that fires automatically when a user edits the spreadsheet.
+ * Watches the "Order Status" column and moves folders when marked "Shipped".
+ */
+function onEdit(e) {
+  // Prevent errors if run manually from the editor
+  if (!e || !e.range) return;
+  
+  const sheet = e.range.getSheet();
+  
+  // Only watch the 'Orders' sheet
+  if (sheet.getName() !== 'Orders') return;
+  
+  const row = e.range.getRow();
+  const col = e.range.getColumn();
+  const newValue = e.value;
+  
+  // Ignore header row
+  if (row === 1) return;
+  
+  // Column 6 (F) is the "Order Status" column
+  if (col === 6) {
+    // If you mark the order as Shipped or Completed
+    if (newValue === "Shipped" || newValue === "Completed") {
+      
+      // Get the Folder URL from Column 9 (I) of the same row
+      const folderUrl = sheet.getRange(row, 9).getValue();
+      
+      if (folderUrl && folderUrl.includes("drive.google.com")) {
+        // Trigger the move function
+        moveOrderToCompleted(folderUrl);
+        
+        // Optional visual feedback in the sheet
+        sheet.getRange(row, 6).setNote("Folder archived on: " + new Date().toLocaleString());
+      }
+    }
+  }
+}
