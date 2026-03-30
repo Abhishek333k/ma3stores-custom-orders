@@ -459,17 +459,23 @@ input, textarea, select {
   margin: 0 auto;
 }
 
-.design-form {
+/* Form Card - White background card */
+.form-card {
   background-color: var(--color-white);
   border-radius: var(--radius-2xl);
   padding: var(--spacing-8);
   box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-gray-200);
 }
 
 @media (min-width: 768px) {
-  .design-form {
+  .form-card {
     padding: var(--spacing-10);
   }
+}
+
+.design-form {
+  /* Form itself has no background/padding now */
 }
 
 .form-group-section {
