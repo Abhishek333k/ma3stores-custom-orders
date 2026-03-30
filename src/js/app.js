@@ -43,18 +43,26 @@
   // ============================================================================
   
   function init() {
-    try {
-      cacheElements();
-      bindEvents();
-      checkOrderStatus();
-      
-      // Add initial design block
-      console.log('Adding initial design block...');
-      addDesignBlock();
-      console.log('Design Portal v3.0 initialized (Multiple Images per Design)');
-    } catch (error) {
-      console.error('Failed to initialize portal:', error);
+    console.log('Initializing portal...');
+    cacheElements();
+    
+    // Verify critical elements exist
+    if (!elements.designBlockTemplate) {
+      console.error('ERROR: Design block template not found!');
+      return;
     }
+    if (!elements.subDesignsContainer) {
+      console.error('ERROR: Sub-designs container not found!');
+      return;
+    }
+    
+    bindEvents();
+    checkOrderStatus();
+    
+    // Add initial design block
+    console.log('Adding initial design block...');
+    addDesignBlock();
+    console.log('✓ Design Portal v3.0 initialized');
   }
   
   function cacheElements() {
@@ -132,10 +140,6 @@
   
   function addDesignBlock() {
     designCount++;
-    
-    console.log('Adding design block #', designCount);
-    console.log('Template:', elements.designBlockTemplate);
-    console.log('Container:', elements.subDesignsContainer);
 
     if (!elements.designBlockTemplate || !elements.subDesignsContainer) {
       console.error('Design template or container not found');
@@ -145,8 +149,6 @@
     const template = elements.designBlockTemplate;
     const clone = template.content.cloneNode(true);
     const designBlock = clone.querySelector('.design-block');
-    
-    console.log('Design block created:', designBlock);
 
     designBlock.dataset.designIndex = designCount;
 
@@ -167,8 +169,6 @@
 
     elements.subDesignsContainer.appendChild(designBlock);
     updateRemoveButtonsVisibility();
-    
-    console.log('Design block added successfully');
   }
   
   function removeDesignBlock(designBlock) {
