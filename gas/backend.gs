@@ -18,7 +18,7 @@
  *           └── design-3-1-custom.png
  * 
  * @version 3.0.0
- * @author MA³ Store Tech Team
+ * @author MA³ Store Tech Team 
  */
 
 // =============================================================================
