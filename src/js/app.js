@@ -481,55 +481,53 @@
   }
   
   async function requestUploadUrls_(fileMetadata) {
-    return new Promise((resolve, reject) => {
-      if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
-        console.log('Development mode - simulating upload URLs');
-        setTimeout(() => {
-          resolve({
-            success: true,
-            orderId: 'ORD-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-DEV',
-            folderUrl: '#',
-            uploadUrls: fileMetadata.map((f, i) => ({
-              uploadUrl: 'https://mock-upload-url.example.com/' + i,
-              index: i,
-              fileName: f.fileName,
-              mimeType: f.mimeType,
-              designIndex: f.designIndex,
-              designFolderName: f.designFolderName
-            }))
-          });
-        }, 1000);
-        return;
-      }
-
-      // Use text/plain to bypass CORS preflight, but send JSON body
-      // Build payload with base64 images
-      const payload = {
-        action: 'getUploadUrls',
-        orderId: currentOrderId,
-        customerName: elements.customerName?.value.trim() || '',
-        files: await Promise.all(fileMetadata.map(async f => ({
+    if (GAS_WEB_APP_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+      console.log('Development mode - simulating upload URLs');
+      await sleep(1000);
+      return {
+        success: true,
+        orderId: 'ORD-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-DEV',
+        folderUrl: '#',
+        uploadUrls: fileMetadata.map((f, i) => ({
+          uploadUrl: 'https://mock-upload-url.example.com/' + i,
+          index: i,
           fileName: f.fileName,
           mimeType: f.mimeType,
           designIndex: f.designIndex,
-          designFolderName: f.designFolderName,
-          productType: f.productType,
-          base64Image: await fileToBase64(f.file) // Convert file to base64
-        })))
+          designFolderName: f.designFolderName
+        }))
       };
+    }
 
-      console.log('Sending to GAS:', GAS_WEB_APP_URL);
-      console.log('Payload:', payload);
+    // Build payload with base64 images
+    const payload = {
+      action: 'getUploadUrls',
+      orderId: currentOrderId,
+      customerName: elements.customerName?.value.trim() || '',
+      files: await Promise.all(fileMetadata.map(async f => ({
+        fileName: f.fileName,
+        mimeType: f.mimeType,
+        designIndex: f.designIndex,
+        designFolderName: f.designFolderName,
+        productType: f.productType,
+        base64Image: await fileToBase64(f.file) // Convert file to base64
+      })))
+    };
 
+    console.log('Sending to GAS:', GAS_WEB_APP_URL);
+    console.log('Payload:', payload);
+
+    // Return a promise for XHR
+    return new Promise((resolve, reject) => {
       // Use text/plain to bypass CORS preflight, but send JSON
       const xhr = new XMLHttpRequest();
       xhr.open('POST', GAS_WEB_APP_URL, true);
       xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
-      
+
       xhr.onload = function() {
         console.log('XHR completed with status:', xhr.status);
         console.log('Response text:', xhr.responseText);
-        
+
         // Parse response
         if (xhr.responseText && xhr.responseText.length > 0) {
           try {
@@ -552,22 +550,22 @@
             console.error('Failed to parse GAS response:', e);
           }
         }
-        
+
         reject(new Error('No response from server'));
       };
-      
+
       xhr.onerror = function() {
         console.error('XHR network error');
         reject(new Error('Network error - check console'));
       };
-      
+
       xhr.ontimeout = function() {
         console.error('XHR timeout');
         reject(new Error('Request timeout'));
       };
-      
+
       xhr.timeout = 90000;
-      
+
       // Send JSON with text/plain header (CORS bypass)
       const jsonString = JSON.stringify(payload);
       console.log('Sending JSON payload:', jsonString.substring(0, 200) + '...');
