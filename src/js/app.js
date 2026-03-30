@@ -16,7 +16,7 @@
   // CONFIGURATION
   // ============================================================================
 
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxROj92INlwWlHUfHgXAnmpYevdAp3xHnmB6yWcjtwl5fuuZslN0hRAm8moNtxQ1yI/exec';
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyOIN3TVQtQCgow_nfegkQYetq9DjGakRO9Xhaq-3EaaO94xHLWF8gfArscuEFFFlWm/exec';
   const SUPPORT_EMAIL = 'myma3store@gmail.com';
   const ACTIVE_ORDERS_FOLDER_ID = '1Vd858k2IROkPfl_B6tIy9W_FlWgk3IUd'; // For fallback URLs
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
