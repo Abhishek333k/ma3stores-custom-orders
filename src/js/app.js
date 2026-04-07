@@ -108,14 +108,34 @@
     }
 
     try {
-      await fetch(GAS_WEB_APP_URL, {
+      // Changed to 'cors' to allow reading the JSON response
+      const response = await fetch(GAS_WEB_APP_URL, {
         method: 'GET',
-        mode: 'no-cors',
+        mode: 'cors',
         cache: 'no-cache'
       });
-      console.log('Order status check completed (opaque response)');
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const data = await response.json();
+      
+      // If the backend explicitly tells us orders are closed
+      if (data.success && data.acceptingOrders === false) {
+        console.log('Order status: Capacity reached. Blocking submissions.');
+        showCapacityModal();
+        
+        // Disable the submit button as an extra security measure
+        if (elements.submitBtn) {
+          elements.submitBtn.disabled = true;
+          elements.submitBtn.querySelector('.btn-text').textContent = 'Currently at Capacity';
+        }
+      } else {
+        console.log('Order status: Accepting orders.');
+      }
+      
     } catch (error) {
       console.error('Error checking order status:', error);
+      // Fail open - allow form to be used if the check fails
     }
   }
   

@@ -430,34 +430,61 @@ function testCleanup() {
 function onEdit(e) {
   // Prevent errors if run manually from the editor
   if (!e || !e.range) return;
-  
+
   const sheet = e.range.getSheet();
-  
+
   // Only watch the 'Orders' sheet
   if (sheet.getName() !== 'Orders') return;
-  
+
   const row = e.range.getRow();
   const col = e.range.getColumn();
   const newValue = e.value;
-  
+
   // Ignore header row
   if (row === 1) return;
-  
+
   // Column 6 (F) is the "Order Status" column
   if (col === 6) {
     // If you mark the order as Shipped or Completed
     if (newValue === "Shipped" || newValue === "Completed") {
-      
+
       // Get the Folder URL from Column 9 (I) of the same row
       const folderUrl = sheet.getRange(row, 9).getValue();
-      
+
       if (folderUrl && folderUrl.includes("drive.google.com")) {
         // Trigger the move function
         moveOrderToCompleted(folderUrl);
-        
+
         // Optional visual feedback in the sheet
         sheet.getRange(row, 6).setNote("Folder archived on: " + new Date().toLocaleString());
       }
     }
+  }
+}
+
+// =============================================================================
+// CONFIGURATION READER
+// =============================================================================
+
+function isAcceptingOrders_() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const configSheet = ss.getSheetByName('Config');
+    
+    if (!configSheet) return true; // Fail open if sheet is missing
+    
+    const data = configSheet.getDataRange().getValues();
+    
+    // Loop through rows (skipping header) to find 'AcceptingOrders' Key
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === 'AcceptingOrders') {
+        // Handle both boolean true and string "TRUE"
+        return data[i][1] === true || data[i][1].toString().toUpperCase() === 'TRUE';
+      }
+    }
+    return true; // Default to true if key not found
+  } catch (e) {
+    console.error('Config read error: ' + e);
+    return true; // Fail open on error
   }
 }
